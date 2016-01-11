@@ -72,8 +72,13 @@ module.exports = function(grunt) {
         concat: { 
             generated: { 
                 files: [{
-                    src:['app/views/css/bootstrap-grid.css', 'app/views/css/style.css'],
-                    dest: '.tmp/concat/views/css/pizza.css'
+                    src:['app/css/main.css', 'app/css/styles.css'],
+                    dest: '.tmp/css/app.css'
+                },
+
+                {
+                    src: ['app/js/knockout-3.4.0.js', 'app/js/app.js'],
+                    dest: '.tmp/js/all.js'
                 }]
             } 
         },
@@ -86,12 +91,8 @@ module.exports = function(grunt) {
             },
             generated: { 
                 files:[{
-                    src: [ 'app/views/js/main.js' ],
-                    dest: '<%= dist %>/views/js/main.min.js'
-                },
-                {
-                    src: [ 'app/js/perfmatters.js' ],
-                    dest: '<%= dist %>/js/perfmatters.js'
+                    src: [ '.tmp/js/all.js' ],
+                    dest: '<%= dist %>/js/all.min.js'
                 }]
             } 
         },
@@ -100,8 +101,8 @@ module.exports = function(grunt) {
         cssmin: {
             generated: {
                 files:[{
-                        src: [ '.tmp/concat/views/css/pizza.css' ],
-                        dest: '<%= dist %>/views/css/pizza.css'
+                        src: [ '.tmp/css/app.css' ],
+                        dest: '<%= dist %>/css/app.css'
                     },
                     {
                         src: [ 'app/css/print.css' ],
@@ -111,6 +112,7 @@ module.exports = function(grunt) {
             }
         },
 
+        // https://www.npmjs.com/package/grunt-processhtml
         processhtml: {
             dist: {
               files: [{
@@ -170,10 +172,9 @@ module.exports = function(grunt) {
         watch: {
             livereload: {
                 files: ['app/**/*.html',
-                        'app/views/js/main.js',
-                        'app/**/css/*.css',
+                        'app/js/*.js',
+                        'app/css/*.css',
                         'app/img/**/*.{jpg,gif,svg,jpeg,png}',
-                        'app/views/images/**/*.{jpg,gif,svg,jpeg,png}',
                         '!node_modules/**',
                         '!<%= dist %>/'
                 ],
@@ -186,7 +187,7 @@ module.exports = function(grunt) {
                 tasks: ['responsive-img']
             },
             jshint: {
-                files: ['app/views/js/main.js', 'Gruntfile.js', '.jshintrc', 'jshintrc-grunt'],
+                files: ['app/js/app.js', 'Gruntfile.js', '.jshintrc', 'jshintrc-grunt'],
                 tasks: ['jshint']
             }
         },
