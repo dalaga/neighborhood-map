@@ -77,7 +77,10 @@ module.exports = function(grunt) {
                 },
 
                 {
-                    src: ['app/js/knockout-3.4.0.js', 'app/js/app.js'],
+                    src: ['app/bower_components/jquery/dist/jquery.min.js',
+                          'app/bower_components/knockout/dist/knockout.js',
+                          'app/js/app.js'
+                          ],
                     dest: '.tmp/js/all.js'
                 }]
             } 
