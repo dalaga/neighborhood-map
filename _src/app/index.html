@@ -32,18 +32,20 @@
         <div data-bind="foreach: areaSelected">
             <p data-bind="text: $data"></p>
         </div>
-
         <ul id="brewery-list" data-bind="foreach: breweryLocations">
             <li data-bind="visible: $parent.checkSearch($index())" >
                 <h3 data-bind="text: name"></h3>
+                <input type="text" data-bind="textInput: name">
                 <p data-bind="text: area"></p>
             </li>
         </ul>
     </div>
 
+
+<pre data-bind="text: ko.toJSON(breweryLocations, null, 2)"></pre>
 <!-- 
 ********************************************     ********************************************      -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDoKlazgkDGJpCm40Z5TnV3xikLoj4UIpM&callback=app.mapRelated.init"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDoKlazgkDGJpCm40Z5TnV3xikLoj4UIpM&callback=app.model.init"></script>
     <!-- build:js js/all.min.js -->
     <script src='bower_components/jquery/dist/jquery.min.js'></script>
     <script src='bower_components/knockout/dist/knockout.js'></script>
