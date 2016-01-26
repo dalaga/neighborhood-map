@@ -3,7 +3,6 @@
  *
  * TODO: more description
 
-
 FourSquare Owner
 JAVIER SALAZAR
 Client id
@@ -14,11 +13,7 @@ QA2FPVXGUP3FPVKMVNDY3BXBKKXZGB4OOFX5DJJRD1BM2NUW
 https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN3K1HFKA1NUFAFXEFADANVJAJZNX3JBBWLXAYP5B0Y&client_secret=QA2FPVXGUP3FPVKMVNDY3BXBKKXZGB4OOFX5DJJRD1BM2NUW&ll=33.1160146,-117.1198876&query=Stone Brewery
  TODO: remove 'app' prefix to model, only have it for testing after running from console.
 
-
- *
- *
  */
-
 
 /**
  * Keep variables off global space
@@ -28,7 +23,26 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 	var map;
 	var infowindow;
 	var bounds;
+	var geocoder;
 	var firebase = new Firebase("https://p5.firebaseIO.com/locations");
+
+	toastr.options = {
+	  "closeButton": true,
+	  "debug": false,
+	  "newestOnTop": true,
+	  "progressBar": false,
+	  "positionClass": "toast-top-right",
+	  "preventDuplicates": false,
+	  "onclick": null,
+	  "showDuration": "300",
+	  "hideDuration": "1000",
+	  "timeOut": "5000",
+	  "extendedTimeOut": "1000",
+	  "showEasing": "swing",
+	  "hideEasing": "linear",
+	  "showMethod": "fadeIn",
+	  "hideMethod": "fadeOut"
+	}
 
 	Array.prototype.getIndexBy = function (name, value) {
 	    for (var i = 0; i < this.length; i++) {
@@ -51,11 +65,12 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 						model.add(brewery);
 						console.log("pushed to firebase: %o", brewery);
 					});
-				} else {
-					console.log("on value triggered with children");
 				}
-			})
+			});
 
+			mapRelated.init();
+			model.fromFireToKO();
+			
 		},
 		locations: [
 			{
@@ -111,7 +126,7 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 			return firebase.push(obj);
 		},
 		/*
-			* id = id of entry in lisnt
+			* id = id of entry in list
 			* obj = contains obj of changes to make
 			*
 		*/
@@ -143,14 +158,58 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 				return ar.indexOf(item) === i; 
 			});
 			return newArray;
+		},
+		fromFireToKO : function () {
+			firebase.on('child_added', function (snapshot) {
+				// The callback function will get called for every location
+				console.log("top key is: ", snapshot.key());
+				// snapshot.val() will be the object for each snapshot
+				console.log("top data: %o ", snapshot.val());
+				var brewery = snapshot.val();
+				// add id in brewery object
+				brewery.id =  snapshot.key();
+				brewery.coords = mapRelated.getit(brewery.address);
+				vm.breweryLocations.push(new Brewery(brewery));
+
+				console.log("currrentl brewery list: %o", vm.breweryLocations());
+
+				// need to propogate any changes done on the firebase db down to the observable array (FIREBASE => OBSERVABLE ARRAY)
+				snapshot.ref().on("value", function(valueSnap) {
+					//initial read OR added new entry to locations
+		            if (valueSnap.val()) {
+		                var currentBreweryIndex = vm.breweryLocations().getIndexBy("id", brewery.id);
+		                
+		                valueSnap.forEach(function(childSnapshot) {
+		                	// key will be name of key, such as name, address, etc.
+		                	var key = childSnapshot.key();
+		                	// val will be the value for the key, such as "stone brewery" for name, etc.
+		                	var val = childSnapshot.val();
+
+		                	// update an observable property
+		                	if ( ko.isObservable(vm.breweryLocations()[currentBreweryIndex][key]) ){
+		                		vm.breweryLocations()[currentBreweryIndex][key](val);
+		                	// update an NON-observable property
+		                	} else {
+		                		console.log("updated value NOT observable...");
+		                		vm.breweryLocations()[currentBreweryIndex][key] = val ;
+		                	}
+		                });
+		            //if valueSnap.val() == null means it was removed, so remove from observable array    
+		            } else {  
+		            	console.log("value removed, brewery: %o", brewery);
+		                self.removeBrewery(brewery.id);
+		            }
+		        });
+
+			});
 		}
 	};
 
-
 	// Location constructor
 	var Brewery = function (data) {
+		// firebase id
 		this.id = data.id;
-		
+		this.name = ko.observable(data.name);
 		this.address = ko.observable(data.address);
 		this.coords = ko.observable(data.coords);
 		this.area = ko.observable(data.area);
@@ -166,9 +225,8 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 		this.fsName = data.fsName;
 		this.fsUrl = data.fsUrl;
 		this.fsCheckins = data.fsCheckins;
-		this.name = ko.observable(data.name);
+		
 	}
-
 
 // *----- viewModel -------*
 
@@ -179,78 +237,6 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 
 		self.searchVal = ko.observable('');
 		self.breweryLocations = ko.observableArray();
-
-		firebase.on('child_added', function (snapshot) {
-			// The callback function will get called for every location
-			console.log("top key is: ", snapshot.key());
-			// snapshot.val() will be the object for each snapshot
-			console.log("top data: %o ", snapshot.val());
-			var brewery = snapshot.val();
-			// add id in brewery object
-			brewery.id =  snapshot.key();
-			self.breweryLocations.push(new Brewery(brewery));
-
-			console.log("currrentl brewery list: %o", self.breweryLocations());
-
-			// need to progogate any changes done on the firebase db down to the observable array
-			snapshot.ref().on("value", function(valueSnap) {
-				//initial read OR added new entry to locations
-	            if (valueSnap.val()) {
-	                var currentBreweryIndex = self.breweryLocations().getIndexBy("id", brewery.id);
-	                
-	                valueSnap.forEach(function(childSnapshot) {
-	                	// key will be name of key, such as name, address, etc.
-	                	var key = childSnapshot.key();
-	                	// val will be the value for the key, such as "stone brewery" for name, etc.
-	                	var val = childSnapshot.val();
-
-	                	// update an observable property
-	                	if ( ko.isObservable(self.breweryLocations()[currentBreweryIndex][key]) ){
-	                		self.breweryLocations()[currentBreweryIndex][key](val);
-	                	// update an NON-observable property
-	                	} else {
-	                		console.log("updated value NOT observable...");
-	                		self.breweryLocations()[currentBreweryIndex][key] = val ;
-	                	}
-	                });
-	            //if valueSnap.val() == null means it was removed, so remove from observable array    
-	            } else {  
-	            	console.log("value removed, brewery: %o", brewery);
-	                self.removeBrewery(brewery.id);
-	            }
-	        });
-
-			ko.utils.arrayForEach(self.breweryLocations(), function(brewery) {
-		        for (var property1 in brewery) {
-
-		        	(function(property){
-			            if (brewery.hasOwnProperty(property)) {
-	 						// check if current property is observable. only subscribe to observables since non-observables will
-			            	// only be read values coming from firebase db
-			            	if ( ko.isObservable(brewery[property]) ){
-			            		
-			            		console.log("OBSERVEABLE: "+ property + " : " + brewery[property]());
-			            		
-			            		brewery[property].subscribe( function(newVal){
-
-		     						var obj = {};
-		     						obj[property] = newVal;
-		     						console.log("obj; %o", obj);
-		     						var brewRef = firebase.child(brewery.id);
-		     						brewRef.update(obj);
-		            			});
-			            	
-			            	} else {
-			            		console.log("NOT OBS " + property );
-			            	}
-			            }
-			        })(property1);
-
-		        }
-		    });
-
-		});
-
 		//get a unique list of areas
 		self.areaList = ko.dependentObservable(function() {
         	var areas = ko.utils.arrayMap(self.breweryLocations(), function(brewery){ return brewery.area})
@@ -258,12 +244,16 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
        	});
 
        	// self.areaList = ko.observableArray(model.getAreas(model.locations));
-
        	//get areas  FROM DATA
        	// var areas = model.getAreas(model.locations);
        	// areas = model.getUniques(areas);
        	// self.areaList = ko.observableArray(areas);
        	self.areaSelected = ko.observableArray(self.areaList());
+
+       	self.init = function () {
+
+				
+		};
 
        	self.removeBrewery = function (id) {
        	    self.breweryLocations.remove(function(brewery) {
@@ -272,38 +262,41 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 
        	};
 
-       	self.subFire = function () {
-       					
-			ko.utils.arrayForEach(self.breweryLocations(), function(brewery) {
-		        for (var property1 in brewery) {
+       	/**
+       	 * need to progogate any changes done on the observable array up to firebase db ( OBSERVABLE ARRAY => FIREBASE )
+       	 *
+       	 */
+       	self.fromKOtoFire = function () {
 
-		        	(function(property){
-			            if (brewery.hasOwnProperty(property)) {
-	 						// check if current property is observable. only subscribe to observables since non-observables will
-			            	// only be read values coming from firebase db
-			            	if ( ko.isObservable(brewery[property]) ){
-			            		
-			            		console.log("OBSERVEABLE: "+ property + " : " + brewery[property]());
-			            		
-			            		brewery[property].subscribe( function(newVal){
-		     						console.log("susbcribing  " + property + " : " + newVal);
+			ko.utils.arrayForEach(self.breweryLocations(), self.subscribeProperty );
 
-		            			});
-			            	
-			            	} else {
-			            		console.log("NOT OBS " + property );
-			            	}
-			            }
-			        })(property1);
+       	};
 
-		        }
-		    });
+       	/**
+       	 * subscribe to every observable property of brewery object in order to propogate changes up to firebase, excluding the 
+       	 * properties 'clicked' and 'display' since those properties should only apply to current instance
+       	 *
+       	 */
+       	self.subscribeProperty = function (brewery) {
+	        for (var property1 in brewery) {
+	        	//closure, retain current value
+	        	(function(property){
+		            if (brewery.hasOwnProperty(property) && ko.isObservable(brewery[property]) && property !== 'clicked' && property !== 'display' ) {
+ 						// check if current property is observable and was not inherited from prototype. only subscribe to observables since non-observables will
+		            	// only be read values coming from firebase db
+	            		console.log("OBSERVEABLE: "+ property + " : " + brewery[property]());
 
-       	}
-
-       	self.subscribeTo = function (propery, val ) {
-       		
-       	}
+	            		brewery[property].subscribe( function(newVal){
+     						var obj = {};
+     						obj[property] = newVal;
+     						console.log("obj; %o", obj);
+     						var brewRef = firebase.child(brewery.id);
+     						brewRef.update(obj);
+            			});
+		            }
+		        })(property1);
+	        }
+       	};
 
        	// to be efficient we show/hide elements by using visible: binding
        	// instead of generating an array each time we search for breweries
@@ -313,9 +306,6 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 			var breweryName = brewery.name().toLowerCase();
 			var breweryArea = (brewery.area() && brewery.area().toLowerCase()) || '';
 			var marker = model.locations[index].marker;
-
-			// console.log("name: %o", brewery);
-			// console.log("searchString: %s", searchString);
 
 			// checking for both name and area since we display those on the list...
 			if(breweryName.indexOf(searchString) > -1 || breweryArea.indexOf(searchString) > -1 || searchString.length === 0) {
@@ -357,67 +347,8 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 			map = new google.maps.Map(document.getElementById('map'), mapOptions);
 			bounds = new google.maps.LatLngBounds ();
 			infowindow = new google.maps.InfoWindow();
+			geocoder = new google.maps.Geocoder();
 			
-
-
-
-
-			//map all locations initially
-
-/**************			
-			model.locations.forEach(function(locObj, index, locations) {
-
-				// check to see if we need to get lat/lng coordinates
-				if (locObj.coords === undefined) {
-					// console.log ("address: %s", locObj.address);
-					// mapRelated.getLatLng(locObj.address, index);
-
-					locObj.coords = mapRelated.getLatLng2(locObj.address);
-					console.log("test");
-				}
-
-				// only add markers for those that have lat/lng coords
-				// TODO: is there a better/more efficient way to do this check?
-				if ( locObj.coords !== undefined){
-					mapRelated.addMarker(locObj);
-
-					// extend map bounds to include new marker
-					 bounds.extend (locObj.marker.getPosition());
-
-					//THIS WAS A PAIN, FINALLY FIGURED OUT THE CLOSURE PROBLEM!!!
-					locObj.marker.addListener('click', (function(curLocation) {
-		    		    
-		    		    return function () {
-
-		    		    	mapRelated.closeMarkers();
-
-		    		    	var curMarker = curLocation.marker,
-		    		    		curContent = mapRelated.createContent(curLocation);
-		    		    	
-		    		    	// move to clicked marker
-		    		    	map.panTo(curMarker.getPosition());
-
-		    		    	// get content for infowindow
-		    		    	mapRelated.attachContent(curMarker, curContent );
-
-		    		   		
-		    		    	// animate on click
-		    		    	if (curMarker.getAnimation() === null) {
-		    		    	    //open infowindow
-		    		    		infowindow.open(curMarker.get('map'), curMarker)
-								curMarker.setAnimation(google.maps.Animation.BOUNCE);
-		    		    	}
-		    		    };
-		    		})(locObj));
-
-		    		map.fitBounds(bounds);
-
-				}
-			});
-*********/
-
-
-
 
 			// EVENT LISTENERS
 
@@ -434,54 +365,128 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 				map.setCenter(curCenter);
 			});
 		},
+		geocodeAddress : function(geocoder, address) {
+
+			var coords = undefined;
+		  	geocoder.geocode({'address': address}, function(results, status) {
+		    	if (status === google.maps.GeocoderStatus.OK) {
+		      		// resultsMap.setCenter(results[0].geometry.location);
+		      		// var latValue = results[0].geometry.location.lat, 
+					// lngValue =results[0].geometry.location.lng;
+
+					
+					coords = results[0].geometry.location
+					console.log ("lop coords: " + coords);
+		 
+		    	} else {
+		      		alert('Geocode was not successful for the following reason: ' + status);
+		      		
+		    	}
+		  	});
+
+		  	return coords;
+		},
+
+		displayMarkers : function (arrLocations) {
+			arrLocations.forEach(function(locObj, index, locations) {
+
+							// check to see if we need to get lat/lng coordinates
+							if (locObj.coords() === undefined) {
+								// console.log ("address: %s", locObj.address);
+								mapRelated.getLatLng(locObj.address(), index);
+
+								console.log("test");
+
+							}
+
+							// only add markers for those that have lat/lng coords
+							// TODO: is there a better/more efficient way to do this check?
+							if ( locObj.coords() !== undefined){
+								mapRelated.addMarker(locObj);
+
+								// extend map bounds to include new marker
+								 bounds.extend (locObj.marker.getPosition());
+
+								//THIS WAS A PAIN, FINALLY FIGURED OUT THE CLOSURE PROBLEM!!!
+								locObj.marker.addListener('click', (function(curLocation) {
+					    		    
+					    		    return function () {
+
+					    		    	mapRelated.closeMarkers();
+
+					    		    	var curMarker = curLocation.marker,
+					    		    		curContent = mapRelated.createContent(curLocation);
+					    		    	
+					    		    	// move to clicked marker
+					    		    	map.panTo(curMarker.getPosition());
+
+					    		    	// get content for infowindow
+					    		    	mapRelated.attachContent(curMarker, curContent );
+
+					    		   		
+					    		    	// animate on click
+					    		    	if (curMarker.getAnimation() === null) {
+					    		    	    //open infowindow
+					    		    		infowindow.open(curMarker.get('map'), curMarker)
+											curMarker.setAnimation(google.maps.Animation.BOUNCE);
+					    		    	}
+					    		    };
+					    		})(locObj));
+
+					    		map.fitBounds(bounds);
+
+							}
+						});
+		},
 
 		/**
 		 *  address = address 
 		 *	index = current entry in location list
 		 */
 		getLatLng: function(address, index) {
-			var url = this.geocodeUrl + "address=" + address  + "key="+ this.geocodeKey,
-				curLoc = model.locations[index];
+			var url = this.geocodeUrl + "address=" + address  + "&key="+ this.geocodeKey,
+				curLoc = vm.breweryLocations()[index];
 			var myCoords = $.getJSON(url, function(data) {
 				console.log("status: %s", data.status);
 				if(data.status === "OK") {
 					var latValue = data.results[0].geometry.location.lat, 
 						lngValue =data.results[0].geometry.location.lng;
 
-					curLoc.coords = { lat : latValue, lng: lngValue};
+					curLoc.coords({ lat : latValue, lng: lngValue});
 					// console.log("index: ", index + "  coords: ",curLoc.coords);
 				} else {
 					console.log("Error getting Lat and Lng of " + address);
+					toastr.error('Error getting Lat and Lng of ' + address);
 				}
 
 			}).fail(function() {
 				console.log("ERROR, can't get location!!!, Google Geocoding api not available");
+				toastr.error('ERROR, can\'t get location!!!, Google Geocoding api not available')
 			});
 
 		},
-		getLatLng2: function(address) {
-			var url = this.geocodeUrl + "address=" + address  + "key="+ this.geocodeKey;
-			var myCoords;
-
-			$.getJSON(url, function(data) {
-				console.log("status: %s", data.status);
-				if(data.status === "OK") {
-					var latValue = data.results[0].geometry.location.lat, 
-						lngValue =data.results[0].geometry.location.lng;
-
-					myCoords =  { lat : latValue, lng: lngValue};
-					// console.log("index: ", index + "  coords: ",curLoc.coords);
-				} else {
-					console.log("Error getting Lat and Lng of " + address);
-				}
-
-				// return myCoords;
-
-			}).fail(function() {
-				console.log("ERROR, can't get location!!!, Google Geocoding api not available");
-			});
-
-			return myCoords;
+		getit : function (address) {
+			var url = this.geocodeUrl + "address=" + address  + "&key="+ this.geocodeKey;
+				$.ajax({
+					url : url,
+					dataType : "json",
+				})
+					.done(function(data) {
+						console.log("status: %s", data.status);
+						if(data.status === "OK") {
+							var latValue = data.results[0].geometry.location.lat, 
+								lngValue =data.results[0].geometry.location.lng;
+							console.log(" in getit ");
+							return {lat : latValue, lng: lngValue};
+						} else {
+							console.log("Error getting Lat and Lng of " + address);
+							toastr.error('Error getting Lat and Lng of ' + address);
+						}
+					}) 
+					.fail(function() {
+						console.log("ERROR, can't get location!!!, Google Geocoding api not available");
+						toastr.error('ERROR, can\'t get location!!!, Google Geocoding api not available')
+					});
 
 		},
 		addMarker: function(loc) {
@@ -579,10 +584,12 @@ https://api.foursquare.com/v2/venues/search?v=20151122&m=swarm&client_id=ZD4WOTN
 	}
 	
 
-	vm = new ViewModel();
+	var vm = new ViewModel();
+
 // *****************************
 	fourSquare.init();
 
+	// fo testing in console, expose through app namespace
 	app.model = model;
 	app.mapRelated = mapRelated;
 	app.fourSquare = fourSquare;

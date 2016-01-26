@@ -6,6 +6,7 @@
     <!-- Tells the browser what the title of this page should be. -->
     <title>San Diego Breweries</title>
     <link rel="stylesheet" type="text/css" href="css/main.css"/>
+    <link rel="stylesheet" type="text/css" href="bower_components/toastr/toastr.css"/>
     <link rel="stylesheet" type="text/css" href="css/styles.css"/>
 
 </head>
@@ -14,14 +15,15 @@
     <!-- display map -->
     <div id="map" class="map"></div>
 
-    <!-- search field -->
-    <div class="search">
-        <input id="search-input" class="search-input" type="text" placeholder="Search Box: " data-bind="textInput: searchVal">
-    </div>
+
 
      <!-- breweries list -->
     <div class="widget">
-
+        <!-- search field -->
+        <div class="search">
+            <input id="search-input" class="search-input" type="text" placeholder="Search Box: " data-bind="textInput: searchVal">
+        </div>
+        
         Available Items:
         <div data-bind="foreach: areaList">
             <input type="checkbox"  data-bind="checkedValue: $data, checked: $parent.areaSelected, visible: $data, click: $parent.filterArea" /> 
@@ -50,7 +52,40 @@
     <script src='bower_components/jquery/dist/jquery.min.js'></script>
     <script src='bower_components/knockout/dist/knockout.js'></script>
     <script src='bower_components/firebase/firebase.js'></script>
+    <script src='bower_components/toastr/toastr.js'></script>
     <script src="js/app.js"></script>
     <!-- /build -->
+
+
+
+
+
+<!-- 
+
+   
+     
+    <div id="images"></div>
+     
+    <script>
+    (function() {
+      var flickerAPI = "http://api.flickr.com/services/feeds/photos_public.gne?jsoncallback=?";
+      $.getJSON( flickerAPI, {
+        tags: "green flash brewery",
+        tagmode: "any",
+        format: "json"
+      })
+        .done(function( data ) {
+          $.each( data.items, function( i, item ) {
+            $( "<img>" ).attr( "src", item.media.m ).appendTo( "#images" );
+            if ( i === 3 ) {
+              return false;
+            }
+          });
+        });
+    })();
+    </script>
+      -->
+    
+
 </body>
 </html>
