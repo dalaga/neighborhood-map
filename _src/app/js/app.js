@@ -13,9 +13,14 @@
  * NOTE: this file may contain more comments that is necessary, but at this point I would rather over comment
  * than not comment enough.  I'm the only one that will work on this particular app, but in the real world I would
  * follow whatever commenting convention is established.  Besides, since files will be minified, most, if not all, comments
- * will be stipped away.
+ * will be stripped away.
  *
  * TODO: user authentication for modifications
+ * TODO: make use of underscore.js to make working with objects easier.
+ * TODO: make use of the Location/brewery contructor prototype to attach methods and properties, help eliminate concern with closures
+ * TODO: make functions more "pure"
+ * TODO: find better way to check for firebase connectivity.
+ * TODO: slide into view on location list when  displayed on map
  */
 
 /**
@@ -42,7 +47,9 @@
 	 *
 	 * @parameter {string} name - kye to compare
 	 *
-	 * @returns {string} value - value to check against
+	 * @parameter {string} value - value to check against
+	 *
+	 * @returns {number} index of entry otherwise -1
 	 */
 	ko.observableArray.fn.getIndexBy = function (name, value) {
 		var that = unWrap(this);
@@ -79,6 +86,7 @@
 		firebase = new Firebase("https://p5.firebaseIO.com/locations"),
 		connectedRef = new Firebase("https://p5.firebaseio.com/.info/connected");
 
+	// options for the notification plugin, not sure where to best place this since it is on global scope
 	toastr.options = {
 		"closeButton": true,
 		"debug": false,
@@ -115,13 +123,13 @@
 		
 		
 		//four square related
-		this.fsId = ko.observable(data.fsId);
-		this.fsName = ko.observable(data.fsName);
-		this.fsUrl = ko.observable(data.fsUrl);
-		this.fsCheckins = ko.observable(data.fsCheckins);
-		this.fsLikes = ko.observable(data.fsLikes);
-		this.fsRating = ko.observable(data.fsRating);
-		this.fsPhotos = ko.observableArray(data.photos);
+		this.fsId = ko.observable(data.fsId) || '';
+		this.fsName = ko.observable(data.fsName) || '';
+		this.fsUrl = ko.observable(data.fsUrl) || '';
+		this.fsCheckins = ko.observable(data.fsCheckins) || '';
+		this.fsLikes = ko.observable(data.fsLikes) || '';
+		this.fsRating = ko.observable(data.fsRating) || '';
+		this.fsPhotos = ko.observableArray(data.photos) || '';
 
 		// values only apply to instance, so do not 'subscribe' changes back to firebase
 			// Keeps track of when the item is clicked.
@@ -142,15 +150,103 @@
 		 *
 		 */
 		init: function () {
-			mapRelated.init();
-			model.initFirebase();
+			// mapRelated.init();
 			model.checkFirebaseConnection(model.initState);
-			model.fromFireToKO().then( function () {
-				console.log("breweries: %o", vm.breweryLocations());
-				mapRelated.displayMarkers( vm.breweryLocations() );
+			model.initFirebase();
+			model.fromFireToKO();
+		},
+
+		/**
+		 *
+		 * check to see if firebase db is available
+		 *
+		 * @returns {bool} - true if it is connected
+		 *
+		 */
+		checkFirebaseConnection : function (state) {
+			// TODO: skip the first connect fail since will always show up on startup, or find better way to ignore initial callback
+			//       from value change.
+			connectedRef.on("value", function(snap) {
+				if (!state){
+					if (snap.val() === true) {
+						toastr.success('FIREBASE DB is online!!! ');
+					} else {
+						toastr.error('FIREBASE DB is offline!!! ');
+					}
+				} else {
+					state = false;
+				}
+				return snap.val();
 			});
 		},
 
+		/**
+		 *
+		 * first -if firebase db is empty prepopulate with init values.
+		 * then retrieve coordinates for any location that doesn't have any
+		 * then display markers on map
+		 *
+		 */
+		initFirebase : function () {
+		 	firebase.once("value").then(function (snapshot) {
+		 		// if firebase db is empty initialize with model.initLocations
+		 		if( !snapshot.hasChildren() ){
+		 			console.log("Does not have children");
+		 			model.initLocations.forEach(function (brewery) {
+		 				firebase.push(brewery);
+		 				console.log("pushed to firebase: %o", brewery);
+		 			});
+		 		}
+		 	}, function(error) {
+		 	  // Something went wrong.
+		 	  console.error(error);
+
+		 	}).then(function () {
+		 		console.log("second THEN on init push of default locations to firebase");
+		 		mapRelated.retrieveCoord(vm.breweryLocations());
+
+		 	},
+		 	function(error) {
+		 	  // Something went wrong.
+		 	  console.error(error);
+		 	}).then(function () {
+		 		console.log("third THEN on init push of default locations to firebase")
+		 		// mapRelated.displayMarkers(vm.breweryLocations());
+		 		model.fromKOtoFire();
+		 	},
+		 	function(error) {
+		 	  // Something went wrong.
+		 	  console.error(error);
+		 	});
+		},
+
+		newBrewery : function ( id, brewery) {
+
+			var entryRef = firebase.child(id);
+
+		 	entryRef.set(brewery).then(function (snapshot) {
+		 				// firebase.push(brewery);
+		 				console.log("pushed to firebase: %o", snapshot);
+		 		
+		 	}, function(error) {
+		 	  // Something went wrong.
+		 	  console.error(error);
+
+		  	}).then(function () {
+		 		console.log("second THEN from NewBrewery ");
+		 		// mapRelated.retrieveCoord(vm.breweryLocations());
+		 		var index = vm.breweryLocations.getIndexBy("id", id);
+		 			// brew = vm.breweryLocations()[index];
+		 		mapRelated.getLatLng(vm.breweryLocations()[index].address, index, vm.breweryLocations())
+
+		 		plugIns.editBrewery();
+		 	},
+		 	function(error) {
+		 	  // Something went wrong.
+		 	  console.error(error);
+		 	});
+		 },
+		
 		/**
 		 *
 		 * initial locations to start with if we don't have anything in firebase db.
@@ -210,61 +306,11 @@
 
 		/**
 		 *
-		 * if firebase db is empty prepopulate with init values.
-		 *
-		 */
-		initFirebase : function () {
-		 	firebase.once("value", function (snapshot) {
-		 		// if firebase db is empty initialize with model.initLocations
-		 		if( !snapshot.hasChildren()){
-		 			console.log("Does not have children");
-		 			model.initLocations.forEach(function (brewery) {
-		 				firebase.push(brewery);
-		 				console.log("pushed to firebase: %o", brewery);
-		 			});
-		 		}
-		 	});
-		},
-
-		firstTime : function () {
-			
-		},
-
-		subsequentTime : function () {
-			
-		},
-
-		/**
-		 *
 		 * init value used to skip initial fail connection message from firebase
 		 *
 		 *
 		 */
 		 initState : true,
-
-		/**
-		 *
-		 * check to see if firebase db is available
-		 *
-		 * @returns {bool} - true if it is connected
-		 *
-		 */
-		checkFirebaseConnection : function (state) {
-			// TODO: skip the first connect fail since will always show up on startup, or find better way to ignore initial callback
-			//       from value change.
-			connectedRef.on("value", function(snap) {
-				if (!state){
-					if (snap.val() === true) {
-						toastr.success('FIREBASE DB is online!!! ');
-					} else {
-						toastr.error('FIREBASE DB is offline!!! ');
-					}
-				} else {
-					state = false;
-				}
-				return snap.val();
-			});
-		},
 
 		/**
 		 * update firebase entry
@@ -274,10 +320,10 @@
 		 * @parameter {string} obj  - object of changes to make
 		 *
 		 */
-		update: function (id, obj) {
+		update : function (id, obj) {
 			var entryRef = firebase.child(id);
 
-			return entryRef(obj);
+			entryRef(obj);
 		},
 		
 		// array of locations areas
@@ -307,9 +353,6 @@
 		 */
 		fromFireToKO : function () {
 			console.log("from -- Fire => KO -- running...");
-
-			// define new defer object
-			var dfd = $.Deferred();
 
 			firebase.orderByChild("name").on('child_added', function (snapshot) {
 				// The callback function will get called for every location
@@ -346,20 +389,19 @@
 		            //if valueSnap.val() == null means it was removed, so remove from observable array    
 		            } else {  
 		            	console.log("value removed, brewery: %o", brewery);
-		                vm.removeBrewery(brewery.id);
+		            	// remove marker if it had one on map
+		            	// if ( typeof vm.breweryLocations()[currentBreweryIndex].marker === 'object' ){
+		            	// 	vm.breweryLocations()[currentBreweryIndex].marker.setMap(null);
+		            	// }
+		    
+		                vm.removeLocalBrewery(brewery.id);
 		            }
 		        });
 				
 				// subscribe brewery back to firebase so changes will happen automatically.
-				mapRelated.displayMarker(app.vm.breweryLocations()[currentBreweryIndex]);
+				// mapRelated.displayMarker(app.vm.breweryLocations()[currentBreweryIndex]);
 				// model.subscribeBrewery(vm.breweryLocations()[currentBreweryIndex]);
-
 			});
-			
-			dfd.resolve();
-
-			return dfd.promise();
-			
 		},
 
 		/**
@@ -370,17 +412,19 @@
        	 *
        	 *
        	 */
-       	fromKOtoFire :function () {
+       	fromKOtoFire : function () {
        		console.log("fromKOtoFire running...array: %o", vm.breweryLocations());
 			ko.utils.arrayForEach(vm.breweryLocations(), model.subscribeBrewery );
        	},
 
        	/**
        	 * subscribe to every observable property of brewery object in order to propogate changes up to firebase, excluding the 
-       	 * properties 'clicked' and 'display' since those properties should only apply to current instance
+       	 * properties 'clicked', 'display', and 'editMode' since those properties should only apply to current instance
        	 *
        	 */
        	subscribeBrewery : function (brewery) {
+	        
+
 	        for (var property1 in brewery) {
 	        	//closure, retain current value
 	        	(function(property){
@@ -388,13 +432,14 @@
 		            									 && property !== 'clicked' 
 		            									 && property !== 'display' 
 		            									 && property !== 'editMode'
-		            									 && property !== 'fsCheckins'
-		            									 && property !== 'fsLikes'
-		            									 && property !== 'fsRating'
-		            									 && property !== 'fsPhotos' ) {
+		            									 // && property !== 'fsCheckins'
+		            									 // && property !== 'fsLikes'
+		            									 // && property !== 'fsRating'
+		            									 // && property !== 'fsPhotos' 
+		            									 ) {
  						// check if current property is observable and was not inherited from prototype. only subscribe to observables since non-observables will
 		            	// only be read values coming from firebase db
-	            		console.log("OBSERVEABLE: "+ property + " : " + brewery[property]());
+	            		 console.log("OBSERVEABLE: "+ property + " : " + brewery[property]());
 
 	           			model.subscribeProperty(brewery, property);
 		            }
@@ -443,6 +488,7 @@
        	}
 	};
 
+
 // *--------------------------------------------------------------------*
 //			                    viewModel
 // *--------------------------------------------------------------------*
@@ -452,7 +498,7 @@
 		// keep reference to viewModel even when context changes
 		var self = this;
 
-		self.addMode = ko.observable(false);
+		// self.addMode = ko.observable(false);
 		self.searchVal = ko.observable('');
 		self.breweryLocations = ko.observableArray();
 		//new brewery form
@@ -475,23 +521,47 @@
        	// self.areaList = ko.observableArray(areas);
        	// self.areaSelected = ko.observableArray(self.areaList());
 
-       	self.addNewBrewery = function () {
+       	self.submitNewBrewery = function () {
 			var brewery = {};
 			brewery.name = unWrap(self.newName);
-			brewery.area = unWrap(self.newArea);
 			brewery.address = unWrap(self.newAddress);
-			brewery.description = unWrap(self.newDescription);
+			brewery.area = unWrap(self.newArea) || '';
+			brewery.description = unWrap(self.newDescription) || '';
 
-			firebase.push(brewery);
+			var newBrewRef =  firebase.push();
+			var postId = newBrewRef.key();
+
+			model.newBrewery(postId, brewery);
+
 		 	console.log("pushed to firebase: %o", brewery);
-		};
 
-       	self.removeBrewery = function (id) {
+
+		};
+		/**
+		 * Remove brewery from local brewery array
+		 *
+		 * @parameter {string}
+		 *
+		 * @dreturns {string}
+		 */
+       	self.removeLocalBrewery = function (id) {
+       	    
        	    self.breweryLocations.remove(function(brewery) {
        	        return brewery.id == id;
        	    });
 
        	};
+
+       	self.removeRemoteBrewery = function (brewery) {
+			
+			// remove marker if it has one on map (REMOVE marker BEFORE removing from db)
+			if (brewery.marker){
+				brewery.marker.setMap(null);
+			}
+			// remove from firebase
+            var brewRef = firebase.child(brewery.id);
+            brewRef.remove();
+        };
 
        	// to be efficient we show/hide elements by using visible: binding
        	// instead of generating an array each time we search for breweries
@@ -503,7 +573,8 @@
 			var breweryArea = (brewery.area() && brewery.area().toLowerCase()) || '';
 			var marker = unWrap(self.breweryLocations()[index].marker);
 
-			// checking for both name and area since we display those on the list...
+			mapRelated.closeInfowindow();
+			// checking for name, area, and address
 			if(breweryName.indexOf(searchString) > -1 || breweryAddress.indexOf(searchString) > -1 || breweryArea.indexOf(searchString) > -1 || searchString.length === 0) {
 				brewery.display(true);
 				if(marker) {
@@ -529,41 +600,38 @@
 
 		};
 
-		self.edit = function (brewery) {
+		self.editBrewery = function (index, brewery, event, element) {
 			// var brewery = self.breweryLocations()[index];
-			if ( unWrap(brewery.editMode) ){
-				brewery.editMode(false);
-			} else {
-				brewery.editMode(true);
-			}
 			
-			
+
+			// plugIns.editBrewery();
+
 		};
 
-		self.add = function () {
-			// var brewery = self.breweryLocations()[index];
-			if ( unWrap(self.addMode) ){
-				self.addMode(false);
-			} else {
-				self.addMode(true);
-			}
-		};
+		// self.addBrewery = function () {
+		// 	// var brewery = self.breweryLocations()[index];
+		// 	if ( unWrap(self.addMode) ){
+		// 		self.addMode(false);
+		// 	} else {
+		// 		self.addMode(true);
+		// 	}
 
-		self.remove = function (brewery) {
-			// var brewery = self.breweryLocations()[index];
-             self.breweryLocations.remove(brewery);
 
-        };
+		// };
+
         self.selected = function(brewery) {
 			var index = self.breweryLocations().indexOf(brewery);
 			
-			console.log("index of clicked is: %s", index);
-
-			// var namae = place.name;
-			// self.onePlace(namae);
-			// self.places()[index].clicked(!place.clicked());
-			// self.infoWindows(index, namae);
+			if ( self.breweryLocations()[index].coords()){
+				google.maps.event.trigger(self.breweryLocations()[index].marker, 'click');
+			} else {
+				toastr.error('Don\'t have coordinates to map it.', unWrap(brewery.name), {timeOut: 0,"preventDuplicates": true});
+			}
 		};
+
+		self.toggle = function () {
+			plugIns.listToggle();
+		}
     	
 	};
 
@@ -583,7 +651,6 @@
 		 *
 		 */
 		init: function() {
-
 			if ( this.checkMapConnections() ){
 				var mapOptions = {
 					center: {lat: 33.1958333, lng: -117.3786111 },
@@ -596,15 +663,17 @@
 
 				map = new google.maps.Map(document.getElementById('map'), mapOptions);
 				bounds = new google.maps.LatLngBounds();
-				infowindow = new google.maps.InfoWindow();			
+				infowindow = new google.maps.InfoWindow({
+					maxWidth: 250
+				});			
 
 				// EVENT LISTENERS
 
 				// close any infowindow that may be closed and stop animation if marker was clicked on
-				google.maps.event.addListener(map, 'click', mapRelated.closeMarkers);
+				google.maps.event.addListener(map, 'click', mapRelated.closeInfowindow);
 
 				// same as avove if close infoWindow by clicking upper right 
-				google.maps.event.addListener(infowindow, 'closeclick', mapRelated.closeMarkers );
+				google.maps.event.addListener(infowindow, 'closeclick', mapRelated.closeInfowindow );
 
 				// keep map centered to current view when window is resized
 				google.maps.event.addDomListener(window, 'resize', function() {
@@ -612,6 +681,7 @@
 					google.maps.event.trigger(map, 'resize');
 					map.setCenter(curCenter);
 				});
+
 			}
 
 		},
@@ -632,7 +702,7 @@
 		},
 		
 		/**
-		 * Get lat and lng values for given address
+		 * Get lat and lng values for given address, THEN display marker for location.
 		 *
 		 * @parameter {string} - address to search for
 		 * @parameter {string} - index of current entry in array
@@ -644,7 +714,7 @@
 				curArray = unWrap(array), // get value regardless if observeable or not
 				curLoc = curArray[index];
 			var xhr = $.getJSON(url, function(data) {
-				console.log("status: %s", data.status);
+				 console.log("status: %s", data.status);
 				if(data.status === "OK") {
 					var latValue = data.results[0].geometry.location.lat, 
 						lngValue =data.results[0].geometry.location.lng;
@@ -653,7 +723,7 @@
 					} else {
 						curLoc.coords = { lat : latValue, lng: lngValue};
 					}
-					console.log("index: ", index + "  coords: ",curLoc.coords());
+					 console.log("index: ", index + "  coords: ",curLoc.coords());
 				} else {
 					console.log("Error getting Lat and Lng of " + address);
 					toastr.error('Error getting Lat and Lng of ' + address);
@@ -666,12 +736,9 @@
 
 			// 'promise' me it will work ;)
 			xhr.then(function () {
-				toastr.info('Finishe ajax call for coords...!!!');
-				console.log("currentLoc: %o", curLoc);
+				mapRelated.displayMarker(curLoc);
 				fourSquare.getInfo(curLoc);
-				
 			});
-
 		},
 		/**
 		 *
@@ -682,54 +749,6 @@
 			arrLocations.forEach(function(locObj, index, locations) {
 				// include locations array in call...must be a better way....
 				mapRelated.getLatLng(locObj.address, index, arrLocations); // can't use 'locations'
-			});
-		},
-		displayMarkers : function (arrLocations) {
-			arrLocations.forEach(function(locObj, index, locations) {
-				// only add markers for those that have lat/lng coords
-				// TODO: is there a better/more efficient way to do this check?
-				// if ( typeof locObj.coords() === 'object'){
-				// 	// mapRelated.addMarker(locObj);
-				// 	locObj.marker = mapRelated.addMarker(locObj);
-
-				// 	// extend map bounds to include new marker
-				// 	 bounds.extend (locObj.marker.getPosition());
-
-				// 	//THIS WAS A PAIN, FINALLY FIGURED OUT THE CLOSURE PROBLEM!!!
-				// 	locObj.marker.addListener('click', (function(curLocation) {
-		    		    
-		  //   		    return function () {
-
-		  //   		    	var curMarker = curLocation.marker,
-		  //   		    		curContent = mapRelated.createContent(curLocation);
-
-		  //   		    	// close any marker window and stop animation on any marker that may be open
-		  //   		    	mapRelated.closeMarkers();
-
-		  //   		    	// set clicked flag
-		  //   		    	curLocation.clicked(true);
-		    		    	
-		  //   		    	// move to clicked marker
-		  //   		    	map.setZoom(16);
-		  //   		    	map.panTo(curMarker.getPosition());
-
-		  //   		    	// get content for infowindow
-		  //   		    	mapRelated.attachContent(curMarker, curContent );
-
-		    		   		
-		  //   		    	// animate on click
-		  //   		    	if (curMarker.getAnimation() === null) {
-		  //   		    	    //open infowindow
-		  //   		    		infowindow.open(curMarker.get('map'), curMarker)
-				// 				curMarker.setAnimation(google.maps.Animation.BOUNCE);
-		  //   		    	}
-		  //   		    };
-		  //   		})(locObj));
-
-		  //   		map.fitBounds(bounds);
-
-				// }
-				mapRelated.displayMarker(locObj);
 			});
 		},
 
@@ -745,35 +764,43 @@
 				locObj.marker.addListener('click', (function(curLocation) {
 	    		    
 	    		    return function () {
-
 	    		    	var curMarker = curLocation.marker,
 	    		    		curContent = mapRelated.createContent(curLocation);
 
 	    		    	// close any marker window and stop animation on any marker that may be open
-	    		    	mapRelated.closeMarkers();
+	    		    	mapRelated.closeInfowindow();
 
 	    		    	// set clicked flag
 	    		    	curLocation.clicked(true);
 	    		    	
 	    		    	// move to clicked marker
-	    		    	map.setZoom(16);
-	    		    	map.panTo(curMarker.getPosition());
+	    		    	 map.panTo(curMarker.getPosition());
+	    		    	// map.setZoom(16);
 
-	    		    	// get content for infowindow
+	    		    	// get content for infowindow ( only using one infoWindow )
 	    		    	mapRelated.attachContent(curMarker, curContent );
 
-	    		   		
 	    		    	// animate on click
 	    		    	if (curMarker.getAnimation() === null) {
 	    		    	    //open infowindow
 	    		    		infowindow.open(curMarker.get('map'), curMarker)
 							curMarker.setAnimation(google.maps.Animation.BOUNCE);
 	    		    	}
+
+	    		    	// have to wait for html element to exist before calling plugin
+	    		    	plugIns.readyGallery();
 	    		    };
 	    		})(locObj));
 
 	    		map.fitBounds(bounds);
 			}
+		},
+
+		displayMarkers : function (arrLocations) {
+			arrLocations.forEach(function(locObj, index, locations) {
+				// only add markers for those that have lat/lng coords
+				mapRelated.displayMarker(locObj);
+			});
 		},
 	
 		/**
@@ -793,8 +820,8 @@
 					position: coords,
 					animation: google.maps.Animation.DROP,
 					map: map,
-					place: {query: name, location: coords},
-					icon: "/img/beer-icon.png"
+					// place: {query: name, location: coords},
+					icon: "./img/beer-icon.png"
 				};
 
 			// add marker object to location entry
@@ -803,13 +830,30 @@
 
 			return marker
 		},
-		addGroupMarkers: function(markersArray) {
-			var bounds = new google.maps.LatLngBounds();
-			for(i=0;i<markers.length;i++) {
-			 bounds.extend(markers[i].getPosition());
-			}
-			map.fitBounds(bounds);
+
+		clearMakers : function  (markersArray) {
+			markersArray.forEach(function(locObj, index, locations) {
+    			// if locations a marker on map
+    			if ( locObj.marker){
+    				locObj.marker.setMap(null);
+    			}
+    		});
 		},
+		/**
+		 * add markers to map and bound them to all fit in view
+		 *
+		 * @parameter {array} - array of marker location objects
+		 *
+		 * 
+		 */
+		// addGroupMarkers: function(markersArray) {
+		// 	var bounds = new google.maps.LatLngBounds();
+		// 	for(i=0;i<markers.length;i++) {
+		// 	 bounds.extend(markers[i].getPosition());
+		// 	}
+		// 	map.fitBounds(bounds);
+		// },
+
 		createContent: function(loc) {
 			var name = unWrap(loc.name),
 				area = unWrap(loc.area),
@@ -828,23 +872,23 @@
 			output += fsCheckins 	? '<h4>Check Ins: ' + fsCheckins + '<\/h4>' : '';
 			output += fsRatings 	? '<h4>Rating: ' + fsRatings + '<\/h4>' : '';
 			output += fsLikes 	? '<h4>Likes: ' + fsLikes + '<\/h4>' : '';
-			output += fsUrl 		? '<a href="' + fsUrl + '">' + fsUrl + '<\/p>' : '';
-			// if ( fsPhotos.length > 0){
-			// 	output += this.getPhotos();
-			// }
-			output += fsPhotos 		? this.getPhotos(fsPhotos) : '';
+			output += fsUrl 		? '<a href="' + fsUrl + '">' + fsUrl + '<\/p></a>' : '';
+			if ( fsPhotos.length > 0){
+				output += mapRelated.getPhotos(fsPhotos);
+			}
+			// output += fsPhotos 		? this.getPhotos(fsPhotos) : '';
 			output += '<\/div>';
 			return output;
     	},
     	getPhotos : function (photos) {
 
-    		var photoStr = '<ul>';
+    		var photoStr = '<p>click photo(s) for  gallery</p><div class="brewery-photos">';
 
     		photos.forEach( function (photo, index, photos) {
-    			photoStr +=  '<li><img src=" ' + photo.prefix + photo.small + photo.suffix + '"></li>';
+    			photoStr +=  '<a href=" '+ photo.prefix + photo.large + photo.suffix + ' "><img src=" ' + photo.prefix + photo.small + photo.suffix + '"></a>';
     		})
 
-    		photoStr += '</ul>';
+    		photoStr += '</div>';
 
     		return photoStr;
     	},
@@ -852,7 +896,7 @@
     		infowindow.setContent( details );
     	},
     	// stop animation and close infowindow for marker
-    	closeMarkers: function() {
+    	closeInfowindow: function() {
     		infowindow.close();
     		map.fitBounds(bounds);
     		// model.locations.forEach(function(locObj, index, locations) {
@@ -880,7 +924,7 @@
 		client_id: '&client_id=ZD4WOTN3K1HFKA1NUFAFXEFADANVJAJZNX3JBBWLXAYP5B0Y',
 		client_secret: '&client_secret=QA2FPVXGUP3FPVKMVNDY3BXBKKXZGB4OOFX5DJJRD1BM2NUW',
 
-		getInfo: function (loc) {
+		getInfo : function (loc) {
 			var coords = unWrap(loc.coords);
 
 			// TODO: is there a better way to check if we have lat/lng??
@@ -896,7 +940,7 @@
 				// only make ajax call if we need id, name, or url
 				if ( !loc.fsId() || !loc.fsUrl() || !loc.fsName() ){
 					var xhr = $.getJSON(fsUrl, function(data) {
-						console.log("data: %o", data);
+						// console.log("data: %o", data);
 
 						if (data.response.venues[0]){
 							var fsId = data.response.venues[0].id,
@@ -911,7 +955,7 @@
 							console.log("update location: %o", loc);
 						} else {
 							console.log("no FourSquare data for this location");
-							toastr.error('can\'t find FourSquare Data',unWrap(loc.name),{timeOut: 0});
+							// toastr.error('can\'t find FourSquare Data',unWrap(loc.name),{timeOut: 0});
 						}
 					
 					}).fail(function() {
@@ -920,24 +964,29 @@
 						toastr.error('Can\'t communicate properly with FourSquare API', 'FourSquare', {timeOut: 0});
 					});
 
-					// get details after getting ID for venue
 					xhr.then(function () {
-					toastr.success('SECOND THEN from ajax call for coords...!!!');
+					// toastr.success('SECOND THEN from foursquare ajax call for info...!!!');
 					fourSquare.getDetails(loc);
 				});
 				}
 			} else {
-				toastr.error('Don\'t have valid Lat/Lng to get FourSquare Data', unWrap(loc.name), {timeOut: 0,"preventDuplicates": false});
+				// toastr.error('Don\'t have valid Lat/Lng to get FourSquare Data', unWrap(loc.name), {timeOut: 0,"preventDuplicates": false});
 			}
 		},
+
+		getAllInfo : function () {
+			vm.breweryLocations().forEach(function(locObj, index, locations) {
+	 			fourSquare.getInfo(locObj);
+			});
+		},
 		/**
-		 * Ajax call for location with FourSquare ID to get details, such as likes, ratings, photos.
+		 * Ajax call for location with FourSquare ID to get commonly UPDATED details, such as likes, ratings, photos.
 		 * This call should be made every time to make sure we get latest stats.
 		 *
 		 * @parameter {object}  loc - location object
 		 *
 		 */
-		getDetails: function (loc) {
+		getDetails : function (loc) {
 			var id = unWrap(loc.fsId),
 				fsUrl = this.url + id + '/?v=20151122' + this.client_id + this.client_secret;
 
@@ -956,8 +1005,8 @@
 							loc.fsRating(fsRating);
 							loc.fsLikes(fsLikes);
 
-						// if ( fsPhotos.length > 0){ 
-							
+							// needed to zero out array (in case it already had photos), else would keep pushing photos to array, increasing size.
+							loc.fsPhotos().length = 0;
 							data.response.venue.photos.groups[0].items.forEach(function (photo) {
 								loc.fsPhotos.push({
 												"prefix" : photo.prefix,
@@ -968,12 +1017,11 @@
 										});
 								console.log("pushed to photos array: %o", photo);
 							});
-						// }
 						
 						console.log("update location DETAILS: %o", loc);
 					} else {
 						console.log("no FourSquare data for this location");
-						toastr.error('can\'t find FourSquare Data',unWrap(loc.name),{timeOut: 0});
+						// toastr.error('can\'t find FourSquare Data',unWrap(loc.name),{timeOut: 0});
 					}
 					
 				}).fail(function() {
@@ -981,32 +1029,140 @@
 					toastr.error('Can\'t communicate properly with FourSquare API', 'FourSquare', {timeOut: 0});
 				});
 			} else {
-				toastr.error('Don\'t have valid foursquare ID to get Detail Data', unWrap(loc.name), {timeOut: 0,"preventDuplicates": false});
+				// toastr.error('Don\'t have valid foursquare ID to get Detail Data', unWrap(loc.name), {timeOut: 0,"preventDuplicates": false});
 			}
 		},
 		/**
-		 * loop through all locations to get Foursquare detials
+		 * loop through all locations to get Foursquare details
 		 *
 		 * 
 		 *
 		 */
-		 getAllDetails: function () {
+		 getAllDetails : function () {
 		 	vm.breweryLocations().forEach(function(locObj, index, locations) {
 		 		if ( unWrap(locObj.fsId) ){
 		 			fourSquare.getDetails(locObj);
 		 		}
 			});
 		 },
-		init: function () {
+		init : function () {
 			vm.breweryLocations().forEach(function(locObj, index, locations) {
 				fourSquare.getInfo(locObj);
 			});
 		}
 	}
 	
-
 	
+// *--------------------------------------------------------------------*
+//			                   Plugins Related Object
+//
+// *--------------------------------------------------------------------*
+
+	var plugIns = {
+
+		init : function  () {
+			$(document).ready(function() {
+
+				// NEW BREWERY FORM: html element exists so init on dom ready
+				// $('.new-brewery-form').magnificPopup({
+				// 	type: 'inline',
+				// 	preloader: false,
+				// 	focus: '#name',
+			 //        modal: true,
+				// 	// When elemened is focused, some mobile browsers in some cases zoom in
+				// 	// It looks not nice, so we disable it: (per plugin Author!)
+				// 	callbacks: {
+				// 		beforeOpen: function() {
+				// 		 	if($(window).width() < 700) {
+				// 				this.st.focus = false;
+				// 			} else {
+				// 				this.st.focus = '#name';
+				// 		  	}
+				// 		}
+				// 	}
+				// });
+
+				$('.brewery-form').each(function() { // the containers for all your galleries
+				    $(this).magnificPopup({
+				        type: 'inline',
+    					preloader: false,
+    					focus: '#name',
+    			        modal: true,
+    					// When elemened is focused, some mobile browsers in some cases zoom in
+    					// It looks not nice, so we disable it: (per plugin Author!)
+    					callbacks: {
+    						beforeOpen: function() {
+    						 	if($(window).width() < 700) {
+    								this.st.focus = false;
+    							} else {
+    								this.st.focus = '#name';
+    						  	}
+    						}
+    					}
+				    });
+				});
+
+				$(document).on('click', '.close-modal', function (e) {
+					e.preventDefault();
+				    $.magnificPopup.close();
+			    });
+
+			    $(document).on('click', '.cancel-modal', function (e) {
+					e.preventDefault();
+					// reset form before closing
+					this.form.reset();
+				    $.magnificPopup.close();
+			    });
+
+			});
+		},
+
+		readyGallery : function () {
+			$('.brewery-photos').each(function() { // the containers for all your galleries
+			    $(this).magnificPopup({
+			        delegate: 'a', // the selector for gallery item
+			        type: 'image',
+			        gallery: {
+			          enabled:true
+			        },
+			        zoom: {
+			            enabled: true, 
+			            duration: 300, 
+			            easing: 'ease-in-out'
+			        }
+			    });
+			});
+		},
+
+		editBrewery : function () {
+			$('.edit-brewery-form').magnificPopup({
+				type: 'inline',
+				preloader: false,
+				focus: '#name',
+		        modal: false,
+				// When elemened is focused, some mobile browsers in some cases zoom in
+				// It looks not nice, so we disable it: (per plugin Author!)
+				callbacks: {
+					beforeOpen: function() {
+					 	if($(window).width() < 700) {
+							this.st.focus = false;
+						} else {
+							this.st.focus = '#name';
+					  	}
+					}
+				}
+			});
+		},
+
+		listToggle : function() {
+			$('.widget').toggleClass('slide-out');
+		}
+	}
+
 	var vm = new ViewModel();
+	ko.applyBindings(vm);
+	model.init();
+	plugIns.init();
 // *****************************
 	// fourSquare.init();
 
@@ -1018,8 +1174,6 @@
 	app.vm = vm;
 // *******************************
 	
-	ko.applyBindings(vm);
-
 
 })( window.app || (window.app = {}), window);
 

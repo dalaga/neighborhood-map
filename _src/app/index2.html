@@ -11,13 +11,7 @@
     <!-- <link rel="stylesheet" type="text/css" href="css/stylesXX.css"/> -->
 
 </head>
-<body>
-
-    <div id="top" class="top-bar">
-        <div class="search">
-            <input id="search-input" class="search-input" type="text" placeholder="Search Box: " data-bind="textInput: searchVal">
-        </div>
-    </div>
+<body>        
     <!-- display map -->
     <div class="map-wrapper">
         <div class="footer"><p>this is the footer</p></div>
@@ -26,8 +20,11 @@
         </div>
         
         <div class="widget">
-            <div class="widget-header"><p>widget header</p></div>
-            <h2>widget container</h2>
+            <input id="search-input" class="search" type="text" placeholder="search name,address, or area " data-bind="textInput: searchVal">
+            <h2 data-bind="click: toggle">widget container</h2>
+            <div class="widget-header">
+                test 1 2 3
+            </div>
              Available Items:
             <!--  <div data-bind="foreach: areaList">
                  <input type="checkbox"  data-bind="checkedValue: $data, checked: $parent.areaSelected, visible: $data, click: $parent.filterArea" /> 
@@ -38,59 +35,54 @@
             <!--  <div data-bind="foreach: areaSelected">
                  <p data-bind="text: $data"></p>
              </div> -->
-             <a href="#" data-bind="click: add">Add Brewery</a>
-             <div data-bind="visible: addMode">
-                  <p><label>Name: <input type="text" data-bind="value: newName"></label></p>
+             <!-- <a href="#" data-bind="click: addBrewery">Add Brewery</a> -->
+
+             <a href="#new-brewery" class="brewery-form">Add Brewery</a>
+             <form id="new-brewery" class="mfp-hide white-popup-block">
+                  <p><label>Name: <input id="name" type="text" data-bind="value: newName"></label></p>
                   <p><label>Address: <input type="text" data-bind="value: newAddress"></label></p>
                   <p><label>Description: <textarea data-bind="value: newDescription"></textarea></p>
                   <p><label>Area: <input type="text" data-bind="value: newArea"></label></p>
-                  <button data-bind="click: addNewBrewery">add</button>
+                  <button data-bind="click: submitNewBrewery">add</button>
+                  <button class="cancel-modal">cancel</button>
                  
-             </div>
+             </form>
+
+
              <ul id="brewery-list" data-bind="foreach: breweryLocations">
                  <!-- <li  > -->
-                 <li data-bind="visible: $parent.checkSearch($index()), click: $parent.selected, css: { highlight : clicked }" >
-                     <h3 data-bind="text: name"></h3>
-                     <p data-bind="text: area"></p>
-                     <a href="#" data-bind="click: $parent.edit">edit</a>
-                     <a href="#" data-bind="click: $parent.remove">remove</a>
-                     <!-- <div id="edit-location" data-bind="template: { name: 'edit-location'}, visible: true"></div> -->
-                     <div class="form" data-bind="visible: editMode">
-                        <p>ID: <spane data-bind="text: id" readonly="readonly"></span></p>
-                         <p><label>Name: <input type="text" data-bind="textInput: name"></label></p>
-                         <p><label>Address: <input type="text" data-bind="textInput: address"></label></p>
-                         <p><label>Area: <input type="text" data-bind="textInput: area"></label></p>
-                         <!-- // would error out if coords was undefined -->
-                         <p><span data-bind="if: coords"><label>Name <input type="text" data-bind="textInput: coords().lat"></label></span></p>
-                         <p><span data-bind="if: coords"><label>Name <input type="text" data-bind="textInput: coords().lng"></label></span></p>
-                         <p><label>Description: <textarea data-bind="textInput: description"></textarea></p>
-                     </div>
-                     
+                 <li data-bind="visible: $parent.checkSearch($index())" >
+                    <a class="brewery-form" data-bind="attr: { href: '#edit-form' + $index() }">edit</a>
+                    <div data-bind="click: $parent.selected, css: { highlight : clicked }">
+                        <h3 data-bind="text: name"></h3>
+                        <p data-bind="text: area"></p>
+
+                        <form  class="mfp-hide white-popup-block" data-bind="attr: { id: 'edit-form' + $index() }">
+                            <p>ID: <spane data-bind="text: id" readonly="readonly"></span></p>
+                            <p><label>Name: <input id="name" type="text" data-bind="textInput: name" required></label></p>
+                            <p><label>Address: <input type="text" data-bind="textInput: address" required></label></p>
+                            <p><label>Area: <input type="text" data-bind="textInput: area"></label></p>
+                            <!-- // would error out if coords was undefined -->
+                            <p><span data-bind="if: coords"><label>Name <input type="text" data-bind="textInput: coords().lat"></label></span></p>
+                            <p><span data-bind="if: coords"><label>Name <input type="text" data-bind="textInput: coords().lng"></label></span></p>
+                            <p><label>Description: <textarea data-bind="textInput: description"></textarea></p>
+                        </form>
+                    </div> 
+                    <!-- <a href="#edit-form" class="brewery-form" data-bind="click: function(data, event) { $parent.editBrewery($index, data, event); }">edit</a> -->
+                    
+                    <!-- <a href="#" data-bind="click: $parent.editBrewery">edit</a> -->
+                    <a href="#" data-bind="click: $parent.removeRemoteBrewery">remove</a>
                  </li>
              </ul>
         </div>
     </div>
-    
-<script type="text/html" id="edit-location">
-    <div class="form">
-        <input type="text" data-bind="id" readonly="readonly">
-        <input type="text" data-bind="name">
-        <input type="text" data-bind="address">
-        <input type="text" data-bind="description">
-        <input type="text" data-bind="area">
-        <input type="text" data-bind="coords.lat">
-        <input type="text" data-bind="coords.lng">
-    </div>
-</script>
-
-    
 
 
 <!-- <pre data-bind="text: ko.toJSON(breweryLocations, null, 2)"></pre> -->
 <!-- <pre data-bind="text: ko.toJSON(app.vm, null, 2)"></pre> -->
 <!-- 
 ********************************************     ********************************************      -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDoKlazgkDGJpCm40Z5TnV3xikLoj4UIpM&callback=app.model.init"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDoKlazgkDGJpCm40Z5TnV3xikLoj4UIpM&callback=app.mapRelated.init"></script>
     <!-- build:js js/all.min.js -->
     <script src='bower_components/jquery/dist/jquery.min.js'></script>
     <script src='bower_components/knockout/dist/knockout.js'></script>
@@ -99,31 +91,6 @@
     <script src='js/magnific-popup.js'></script>
     <script src="js/app.js"></script>
     <!-- /build -->
-
-     
-    <div id="images"></div>
-     
-    <script>
-    (function() {
-      var flickerAPI = "http://api.flickr.com/services/feeds/photos_public.gne?jsoncallback=?";
-      $.getJSON( flickerAPI, {
-        tags: "green flash brewery",
-        tagmode: "any",
-        format: "json"
-      })
-        .done(function( data ) {
-        console.log("flickr data: %o", data);
-          $.each( data.items, function( i, item ) {
-            $( "<img>" ).attr( "src", item.media.m ).appendTo( "#images" );
-            if ( i === 3 ) {
-              return false;
-            }
-          });
-        });
-    })();
-    </script>
-     
-    
 
 </body>
 </html>

@@ -3,7 +3,6 @@
 	box-sizing: border-box;
 }
 
-
 body {
 	padding: 0;
 	margin: 0;
@@ -14,21 +13,21 @@ body {
 .highlight { 
 	background-color: yellow;
 }
-.top-bar {             
+/*.top-bar {             
 	position: fixed;
 	z-index: 9999;
 	top: 0;
 	left: 0;
 	right: 0;
 	height: 60px;	
-}
-.search {
+}*/
+/*.search {
 	height: 60px;
 	position: absolute;
 	top: 0;
 	left: 0;
 	right: 0;
-}
+}*/
 .map-wrapper {
 	z-index: 2;
 	position: relative;
@@ -37,10 +36,16 @@ body {
 
 
 .search {
-	z-index: 99999;
-	width:100%;
+	position:fixed;
+	top: 50vh;
+	display: block;
+	z-index: 99;
+	width: 100%;
 	min-width: 215px;
+	height: 60px;
 	background-color: #aabbcc;
+	padding:5px;
+	font-size: 18px;
 }
 
 .map-container {
@@ -70,7 +75,7 @@ body {
 .widget-header {
 	/*top: 50vh;*/
 	position: relative;
-	z-index: 99;
+	/*z-index: 99;*/
 	background-color: #e60000;
     color: white;
     text-transform: uppercase;
@@ -84,9 +89,26 @@ body {
 	top: 50vh;
 	position: relative;
 	z-index: 99;
-	background-color: white;
+	background-color: #f5f7f9;
+	padding: 60px 0 75px 0;
+	transition: .5s;
 }
 
+.slide-out {
+	transform: translate3d( calc(100% - 40px) , 0,0); 
+}
+.brewery-photos {
+	height:200px;
+	overflow: auto;
+	white-space: nowrap;
+	margin:0 0 0 -5px;
+	padding:0;
+}
+.brewery-photos a{
+	display: inline-block;
+	margin-left:5px;
+
+}
 @media (min-width: 600px){
 	/*.top-bar {             
 		position: fixed;
@@ -104,7 +126,7 @@ body {
 		right: 0;
 	}*/
 	.map-container {
-		padding:60px 0 30px 0;
+		padding:0 0 30px 0;
 		height:100vh;
 		z-index: 1;
 	}
@@ -114,10 +136,18 @@ body {
 	}
 
 	.widget {
-		left:10px;
-		top:100px;
+		right:10px;
+		top:10px;
 		width: 35%;
 		max-width:350px;
+		position: fixed;
+		overflow-y:scroll;
+		height: calc( 100vh - 30px);
 
+	}
+	.search {
+		top: 10px;
+		width:35%;
+		max-width: 350px;
 	}
 }
