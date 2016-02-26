@@ -1103,7 +1103,7 @@
 
 			window.setTimeout(function() {
 			      $.magnificPopup.close();
-			    }, 3000);
+			    }, 5000);
 		},
 
 		mapError : function () {
