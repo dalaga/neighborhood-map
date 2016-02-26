@@ -3,10 +3,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
     <title>San Diego Breweries</title>
+    <!-- build:css css/app.css --> 
     <link rel="stylesheet" type="text/css" href="css/from-bootstrap.css"/>
     <link rel="stylesheet" type="text/css" href="css/main.css"/>
     <link rel="stylesheet" type="text/css" href="bower_components/toastr/toastr.css"/>
     <link rel="stylesheet" type="text/css" href="css/magnific-popup.css"/>
+    <!-- /build -->
 </head>
 <body>        
     
@@ -100,10 +102,8 @@
 
     </div>
 
-<!-- <pre data-bind="text: ko.toJSON(breweryLocations, null, 2)"></pre> -->
-<!-- <pre data-bind="text: ko.toJSON(app.vm, null, 2)"></pre> -->
 
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDoKlazgkDGJpCm40Z5TnV3xikLoj4UIpM&callback=app.mapRelated.init"></script>
+    
     <!-- build:js js/all.min.js -->
     <script src='bower_components/jquery/dist/jquery.min.js'></script>
     <script src='bower_components/knockout/dist/knockout.js'></script>
@@ -112,6 +112,7 @@
     <script src='js/magnific-popup.js'></script>
     <script src="js/app.js"></script>
     <!-- /build -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDoKlazgkDGJpCm40Z5TnV3xikLoj4UIpM&callback=app.mapRelated.init" onerror="app.mapRelated.error()"></script>
 
 </body>
 </html>
