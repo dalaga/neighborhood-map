@@ -897,6 +897,10 @@
     				locObj.clicked(false);
     			}
     		});
+    	},
+
+    	error : function () {
+    		plugIns.mapError();
     	}
 	};
 
@@ -1100,6 +1104,15 @@
 			window.setTimeout(function() {
 			      $.magnificPopup.close();
 			    }, 3000);
+		},
+
+		mapError : function () {
+			$.magnificPopup.open({
+			 	items: {
+			    	src: '<div class="white-popup-block">ERROR, could not load Google Maps. Verify you have internet connection and try again.</div>',
+			  		type: 'inline'
+			  	}
+			});
 		},
 
 		// close Popup
