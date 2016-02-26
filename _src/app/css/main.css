@@ -59,7 +59,7 @@
 .map-container {
     position: fixed;
     width: 100%;
-    height: 70vh;
+    height: 50vh;
     z-index: 999;
     top: 55px;
     left:0;
@@ -72,7 +72,7 @@
 }
 
 .widget {
-    top: calc( 70vh + 55px);
+    top: calc( 50vh + 55px);
     position: relative;
     z-index: 99;
   background-color: #FFFBF6;
