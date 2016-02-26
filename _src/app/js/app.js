@@ -21,6 +21,7 @@
  * TODO: make functions more "pure"
  * TODO: find better way to check for firebase connectivity.
  * TODO: slide into view on location list when  displayed on map
+ * TODO: only show edit/remove/add for admin users
  */
 
 /**
@@ -85,25 +86,6 @@
 		bounds,
 		firebase = new Firebase("https://p5.firebaseIO.com/locations"),
 		connectedRef = new Firebase("https://p5.firebaseio.com/.info/connected");
-
-	// options for the notification plugin, not sure where to best place this since it is on global scope
-	toastr.options = {
-		"closeButton": true,
-		"debug": false,
-		"newestOnTop": true,
-		"progressBar": false,
-		"positionClass": "toast-top-right",
-		"preventDuplicates": false,
-		"onclick": null,
-		"showDuration": "300",
-		"hideDuration": "1000",
-		"timeOut": "5000",
-		"extendedTimeOut": "1000",
-		"showEasing": "swing",
-		"hideEasing": "linear",
-		"showMethod": "fadeIn",
-		"hideMethod": "fadeOut"
-	}
 
 	/**
 	 * Brewery place construstor
@@ -192,31 +174,26 @@
 		 		// if firebase db is empty initialize with model.initLocations
 		 		if( !snapshot.hasChildren() ){
 		 			console.log("Does not have children");
+
+		 			plugIns.waitMessage();
 		 			model.initLocations.forEach(function (brewery) {
 		 				firebase.push(brewery);
-		 				console.log("pushed to firebase: %o", brewery);
+		 				console.log("INIT: pushed to firebase: %o", brewery);
 		 			});
 		 		}
+
 		 	}, function(error) {
-		 	  // Something went wrong.
-		 	  console.error(error);
+				// Something went wrong.
+				console.error(error);
 
 		 	}).then(function () {
 		 		console.log("second THEN on init push of default locations to firebase");
 		 		mapRelated.retrieveCoord(vm.breweryLocations());
-
-		 	},
-		 	function(error) {
-		 	  // Something went wrong.
-		 	  console.error(error);
-		 	}).then(function () {
-		 		console.log("third THEN on init push of default locations to firebase")
-		 		// mapRelated.displayMarkers(vm.breweryLocations());
 		 		model.fromKOtoFire();
 		 	},
 		 	function(error) {
-		 	  // Something went wrong.
-		 	  console.error(error);
+				// Something went wrong.
+				console.error(error);
 		 	});
 		},
 
@@ -226,7 +203,7 @@
 
 		 	entryRef.set(brewery).then(function (snapshot) {
 		 				// firebase.push(brewery);
-		 				console.log("pushed to firebase: %o", snapshot);
+		 				console.log("NEW-BREW:pushed to firebase: %o", snapshot);
 		 		
 		 	}, function(error) {
 		 	  // Something went wrong.
@@ -239,13 +216,12 @@
 		 			// brew = vm.breweryLocations()[index];
 		 		mapRelated.getLatLng(vm.breweryLocations()[index].address, index, vm.breweryLocations())
 
-		 		plugIns.editBrewery();
 		 	},
 		 	function(error) {
 		 	  // Something went wrong.
 		 	  console.error(error);
 		 	});
-		 },
+		},
 		
 		/**
 		 *
@@ -256,43 +232,143 @@
 			{
 				name: "Stone Brewing Co.",
 				address: "1999 Citracado Parkway, Escondido, CA 92029",
+				coords: { lat: 33.1160146 , lng: -117.1198876},
 				area: "North County",
-				description: "Stone Description goes here...",
-				editMode: false,
-
+				description: "The brewery that started it all, Stone is a monster facility with a huge restaurant, brewery tours ($3 but you keep the glass), and events such as free outdoor movie nights. Beautiful gardens, great for families. "
 			},
 			{
 				name: "Oceanside Ale Works",
 				address: "1800 Ord Way, Oceanside, CA 92056",
-				area: "test area"
+				coords: { lat: 33.2113331, lng: -117.2731069},
+				area: "North County",
+				description: "Oceanside Ale Works was founded in 2005, located in a business park in Oceanside. It's one of the few manual brew houses in the US, inspired by European brewing traditions. Fun atmosphere, food vendortypically Thurs-Sun. Come hungry and thirsty and bring friends!"
 			},
 			{
 				name: "Ballast Point",
 				address: "10051 Old Grove Rd, San Diego, CA 92131",
+				coords: { lat: 32.8985298, lng: -117.1108975},
+				area: "Miramar",
+				description: "Off the 15 near Scripps Ranch, Ballast Point is one of the better known local beers. Take a tour of the facilities at 12, 2 and 5PM or go straight to tasting - their pale ale is a local favorite."
 			},
 			{
 				name: "Green Flash",
 				address: "6550 Mira Mesa Blvd, San Diego, CA 92121",
+				coords: { lat: 32.9070566, lng: -117.1777777},
+				area: "Miramar",
+				description: "From the front it looks like any other giant corporation office but step inside and it opens up to the largest tasting room in San Diego. With an expansive bar and easy to understand tasting menu, it's a great place to bring a bunch of friends!"
 			},
 			{
 				name: "Iron Fist",
-				address: "1305 Hot Springs Way, Vista, CA 92081"			},
-			{
-				name: "Mad Lab Craft Brewing",
-				address: "6120 Business Center CT,San Diego, CA 92154",
+				address: "1305 Hot Springs Way, Vista, CA 92081",
+				coords: { lat: 33.1455509, lng: -117.2386716},
+				area: "North County",
+				description: "Fun and lively, Iron Fist is a popular medium sized brewery located in an industrial park. Big bold beers with tons of personality. Plenty of tables for spreading out your tasters or pints and food trucks typically on Thursdays, Friday and Saturdays."			
 			},
 			{
 				name: "Modern Times",
-				address: "3725 Greenwood St, San Diego, CA 92110"// two locations
+				address: "3725 Greenwood St, San Diego, CA 92110",
+				coords: { lat: 32.7542471, lng: -117.2062186},
+				area: ""
 			},
 			{
 				name: "Prohibition",
-				address: "2004 East Vista Way, Vista, CA 92084"
+				address: "2004 East Vista Way, Vista, CA 92084",
+				coords: { lat: 33.2304601, lng: -117.2266174},
+				area: "North County",
+				description: "From the front it looks like a rough bar from The Blues Brothers movie but inside its warm and friendly with some of the nicest servers you'll find in San Diego. Terrific food and even better beers, a family run business. Located far north in Vista but worth the drive - come hungry!"
 			},
 			{
-				name: "Coronada Brewing",
+				name: "Coronado Brewing",
 				address: "170 Orange Ave, Coronado, CA 92118",
+				coords: { lat: 32.6978177, lng: -117.1732552},
+				area: "Central San Diego",
+				description: "Coronado Brewing Company is a family friendly restaurant that just happens to make some great beers. "
+
+			},
+			{
+				name: "Bagby Beer Company",
+				address: "601 S COAST HWY OCEANSIDE, CA, 92054",
+				coords: { lat: 33.189225, lng: -117.374257},
+				area: "North County",
+				description: "At Bagby Beer Company, we are extremely proud of the set of menu offerings we've developed – we work hard to ensure that they do a good job of reflecting our collective character and showcasing what we value most: Quality wins in the end, Attention to detail matters, We are inspired by all things creative and handmade, We are committed to showcasing true craftsmanship in all forms."
+			},
+			{
+				name: "Belching Beaver Brewery",
+				address: "980 Center Dr, Suite A Vista, CA 92081",
+				coords: { lat: 33.1450383, lng: -117.2285578},
+				area: "North County",
+				description: "Hard to find industrial park location but worth it once you arrive. The tasting room is sleek and industrial and the staff warm and friendly. Off the charts IPA as well as other full bodied beers, big screen TV, this place has the potential to be one of the top breweries in North County."
+			},
+			{
+				name: "Legacy",
+				address: "363 Airport Rd, Oceanside, CA 92058",
+				coords: { lat: 33.2153901, lng: -117.3507698},
+				area: "North County",
+				description: "Legacy Brewing has been open since October 2013. With over 55 years of combined commercial brewing experience as a patron you will not be disappointed."
+			},
+			{
+				name: "The Lost Abbey",
+				address: "155 Mata Way #104, San Marcos, CA 92069",
+				coords: { lat: 33.1416847, lng: -117.1492963},
+				area: "North County",
+				description: "Tons of atmosphere, The Lost Abbey is the holy grail if you're looking for a fun tasting experience in a big - but not too big - brewery. Port Brewing calls this home as well so there are plenty of choices, maybe too many! Use the Vote link below to see the most popular beers- aint that easy?"
+			},
+			{
+				name: "Mother Earth Brewing Co.",
+				address: "206 Main Street, Suite H, Vista, CA 92084",
+				coords: { lat: 33.2024551, lng: -117.2423369},
+				area: "North County",
+				description: "Serious beer lovers love Mother Earth for their beer making supplies, casual setting and great beers. They have a new tasting room and retail store with free beer making classes, it's the one stop shop for serious beer lovers."
+			},
+			{
+				name: "Hess Brewing Co.",
+				address: "7955 Silverton Rd, San Diego, CA 92126",
+				coords: { lat: 32.890496, lng: -117.149662},
+				area: "Miramar",
+				description: "Hess is a tiny nano-brewery, meaning the make beer in very small batches. Located in an industrial park and a bit hard to find, it's worth seeking out when you're in the Miramar area. They'll will even the brewery special for you if you have a group of 5 or more."
+			},
+			{
+				name: "AleSmith Brewing Co.",
+				address: "9368 Cabot Drive San Diego, CA 92126",
+				coords: { lat: 32.8924532, lng: -117.1447157},
+				area: "Miramar",
+				description: "Easy location right off Miramar Road, AleSmith not only has great beers but a young party atmosphere that makes it a great stop with friends. "
+			},
+			{
+				name: "Saint Archer Brewing Co.",
+				address: "9550 Distribution Ave. San Diego, CA 92121",
+				coords: { lat: 32.8804822, lng: -117.1634659},
+				area: "Miramar",
+				description: "Saint Archer’s production facility is located in the heart of the San Diego brewery scene. Upon entering the 33,000 square foot facility, one would immediately see our 3 vessel, 30 barrel brew house amongst a forest of 120 barrel fermenters."
+			},
+			{
+				name: "Thorn St. Brewery",
+				address: "3176 Thorn St., San Diego, CA 92104",
+				coords: { lat: 32.739475, lng: -117.1255158},
+				area: "Central San Diego",
+				description: "At Thorn Street Brewery, we are committed to bringing the neighborhood brewery back to reality and making you that better beer. We can think of no better neighborhood than North Park to begin this project."
+			},
+			{
+				name: "Monkey Paw Brew Pub",
+				address: "805 16th Street San Diego, CA 92101",
+				coords: { lat: 32.7138528, lng: -117.1492565},
+				area: "Central San Diego",
+				description: "Monkey Paw Brewery and Pub is your quintessential neighborhood bar, but with a twist. No crummy bar food, their creative menu features waffle fries, cheesesteaks, wings, and pork shanks they call \"Drunky Monkey Bones\", perfect for pairing with their creative beers."
+			},
+			{
+				name: "Blind Lady Ale House",
+				address: "3416 Adams Ave. San Diego, CA 92116",
+				coords: { lat: 32.763498, lng: -117.1203007},
+				area: "Central San Diego",
+				description: "Located in Normal Heights, Blind Lady Ale House is a hip brew pub that serves great pizzas and salads using the best ingredients. It's also home to Automatic Brewing Co, a small nano brewery. Plenty of local taps and late hours makes this place a popular destination at night."
+			},
+			{
+				name: "The Beer Co.",
+				address: "602 Broadway San Diego, CA 92101",
+				area: "Central San Diego",
+				description: "At first The Beer Co. in downtown San Diego looks like any other sports bar - hot waitresses, TV's over the big bar, happy hour food specials. But what sets them apart is that they also make their own beer. A bit like Hooters but with way better beer, a late night hot spot."
 			}
+
 		],
 
 		/**
@@ -397,10 +473,7 @@
 		                vm.removeLocalBrewery(brewery.id);
 		            }
 		        });
-				
-				// subscribe brewery back to firebase so changes will happen automatically.
-				// mapRelated.displayMarker(app.vm.breweryLocations()[currentBreweryIndex]);
-				// model.subscribeBrewery(vm.breweryLocations()[currentBreweryIndex]);
+
 			});
 		},
 
@@ -423,24 +496,13 @@
        	 *
        	 */
        	subscribeBrewery : function (brewery) {
-	        
-
 	        for (var property1 in brewery) {
 	        	//closure, retain current value
 	        	(function(property){
 		            if (brewery.hasOwnProperty(property) && isObservable(brewery[property]) 
 		            									 && property !== 'clicked' 
 		            									 && property !== 'display' 
-		            									 && property !== 'editMode'
-		            									 // && property !== 'fsCheckins'
-		            									 // && property !== 'fsLikes'
-		            									 // && property !== 'fsRating'
-		            									 // && property !== 'fsPhotos' 
-		            									 ) {
- 						// check if current property is observable and was not inherited from prototype. only subscribe to observables since non-observables will
-		            	// only be read values coming from firebase db
-	            		 console.log("OBSERVEABLE: "+ property + " : " + brewery[property]());
-
+		            									 && property !== 'editMode') {
 	           			model.subscribeProperty(brewery, property);
 		            }
 		        })(property1);
@@ -462,7 +524,7 @@
 					brewRef.update(obj);
     			});
 
-        		// fire change event so properties get moved to firebase db, else would wait for next change
+        		// trigger change event (valuehasmutated) so properties get moved to firebase db, else would wait for next change
         		// which may not happen again ( cannot push undefined values to firebase, will error out)
         		if ( unWrap(brewery[property]) !== undefined){
     				brewery[property].valueHasMutated();
@@ -470,21 +532,6 @@
     		} else {
     			console.log ("property already subscribed %s", property );
     		}
-       	},
-
-       	/**
-       	 *
-       	 * set Value of property regardless if observable or not
-       	 *
-       	 */
-       	setValue : function (property, value) {
-
-       		if ( isObservable(property) ){
-       			return property(value);
-       		} else {
-       			return property = value;
-       		}
-       		
        	}
 	};
 
@@ -522,20 +569,25 @@
        	// self.areaSelected = ko.observableArray(self.areaList());
 
        	self.submitNewBrewery = function () {
+
+
+       		if ( unWrap(self.newName) == undefined|| unWrap(self.newAddress) == undefined ){
+
+       			toastr.error('Insert failed, did not supply all required fields');
+       			return false;
+       		}
 			var brewery = {};
+			var newBrewRef =  firebase.push();
+			var postId = newBrewRef.key();
+
 			brewery.name = unWrap(self.newName);
 			brewery.address = unWrap(self.newAddress);
 			brewery.area = unWrap(self.newArea) || '';
 			brewery.description = unWrap(self.newDescription) || '';
 
-			var newBrewRef =  firebase.push();
-			var postId = newBrewRef.key();
-
 			model.newBrewery(postId, brewery);
 
 		 	console.log("pushed to firebase: %o", brewery);
-
-
 		};
 		/**
 		 * Remove brewery from local brewery array
@@ -563,30 +615,30 @@
             brewRef.remove();
         };
 
-       	// to be efficient we show/hide elements by using visible: binding
+       	// show/hide elements by using visible: binding
        	// instead of generating an array each time we search for breweries
        	self.checkSearch = function(index) {
        		var brewery = self.breweryLocations()[index];
 			var searchString = self.searchVal().toLowerCase();
 			var breweryName = brewery.name().toLowerCase();
 			var breweryAddress = brewery.address().toLowerCase();
-			var breweryArea = (brewery.area() && brewery.area().toLowerCase()) || '';
+			var breweryArea =  brewery.area().toLowerCase() || '';
 			var marker = unWrap(self.breweryLocations()[index].marker);
 
 			mapRelated.closeInfowindow();
 			// checking for name, area, and address
 			if(breweryName.indexOf(searchString) > -1 || breweryAddress.indexOf(searchString) > -1 || breweryArea.indexOf(searchString) > -1 || searchString.length === 0) {
 				brewery.display(true);
+				
+				// attempt to show marker only if brewery object has one
 				if(marker) {
-					marker.setMap(map);
-					console.log("pin on map: %s", breweryName);
-					// marker.setVisible(true);
+					// console.log("pin on map: %s", breweryName);
+					marker.setVisible(true);
 				}
 			} else {
 				brewery.display(false);
 				if(marker) {
-					marker.setMap(null);
-					// marker.setVisible(false);
+					marker.setVisible(false);
 				}
 			}
 			
@@ -625,7 +677,7 @@
 			if ( self.breweryLocations()[index].coords()){
 				google.maps.event.trigger(self.breweryLocations()[index].marker, 'click');
 			} else {
-				toastr.error('Don\'t have coordinates to map it.', unWrap(brewery.name), {timeOut: 0,"preventDuplicates": true});
+				toastr.error('Don\'t have coordinates to map it. Refresh page to see if google maps can find it again.', unWrap(brewery.name), {timeOut: 0,"preventDuplicates": false});
 			}
 		};
 
@@ -657,8 +709,9 @@
 					scrollwheel:false,
 					mapTypeControl: false,
 					streetViewControl: false,
-					zoom: 5,
-					styles: [{"featureType":"administrative","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"landscape","elementType":"all","stylers":[{"visibility":"simplified"},{"hue":"#0066ff"},{"saturation":74},{"lightness":100}]},{"featureType":"poi","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"road","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"road.highway","elementType":"all","stylers":[{"visibility":"on"},{"weight":0.6},{"saturation":-85},{"lightness":61}]},{"featureType":"road.highway","elementType":"geometry","stylers":[{"visibility":"on"}]},{"featureType":"road.arterial","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"road.local","elementType":"all","stylers":[{"visibility":"on"}]},{"featureType":"transit","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"water","elementType":"all","stylers":[{"visibility":"simplified"},{"color":"#5f94ff"},{"lightness":26},{"gamma":5.86}]}]
+					zoom: 10,
+					styles: [{"featureType":"administrative","elementType":"all","stylers":[{"visibility":"on"},{"saturation":-100},{"lightness":20}]},{"featureType":"road","elementType":"all","stylers":[{"visibility":"on"},{"saturation":-100},{"lightness":40}]},{"featureType":"water","elementType":"all","stylers":[{"visibility":"on"},{"saturation":-10},{"lightness":30}]},{"featureType":"landscape.man_made","elementType":"all","stylers":[{"visibility":"simplified"},{"saturation":-60},{"lightness":10}]},{"featureType":"landscape.natural","elementType":"all","stylers":[{"visibility":"simplified"},{"saturation":-60},{"lightness":60}]},{"featureType":"poi","elementType":"all","stylers":[{"visibility":"off"},{"saturation":-100},{"lightness":60}]},{"featureType":"transit","elementType":"all","stylers":[{"visibility":"off"},{"saturation":-100},{"lightness":60}]}]
+					// styles: [{"featureType":"administrative","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"landscape","elementType":"all","stylers":[{"visibility":"simplified"},{"hue":"#0066ff"},{"saturation":74},{"lightness":100}]},{"featureType":"poi","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"road","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"road.highway","elementType":"all","stylers":[{"visibility":"on"},{"weight":0.6},{"saturation":-85},{"lightness":61}]},{"featureType":"road.highway","elementType":"geometry","stylers":[{"visibility":"on"}]},{"featureType":"road.arterial","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"road.local","elementType":"all","stylers":[{"visibility":"on"}]},{"featureType":"transit","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"water","elementType":"all","stylers":[{"visibility":"simplified"},{"color":"#5f94ff"},{"lightness":26},{"gamma":5.86}]}]
 				};
 
 				map = new google.maps.Map(document.getElementById('map'), mapOptions);
@@ -681,9 +734,7 @@
 					google.maps.event.trigger(map, 'resize');
 					map.setCenter(curCenter);
 				});
-
 			}
-
 		},
 		/**
 		 *
@@ -710,11 +761,13 @@
 		 *
 		 */
 		getLatLng: function(address, index, array) {
-			var url = this.geocodeUrl + "address=" + unWrap(address)  + "&key="+ this.geocodeKey,
+			var url = this.geocodeUrl + "region=US&address=" + unWrap(address)  + "&key="+ this.geocodeKey,
 				curArray = unWrap(array), // get value regardless if observeable or not
-				curLoc = curArray[index];
-			var xhr = $.getJSON(url, function(data) {
-				 console.log("status: %s", data.status);
+				curLoc = curArray[index],
+				xhr;
+			
+			xhr = $.getJSON(url, function(data) {
+				console.log("status: %s", data.status);
 				if(data.status === "OK") {
 					var latValue = data.results[0].geometry.location.lat, 
 						lngValue =data.results[0].geometry.location.lng;
@@ -725,8 +778,8 @@
 					}
 					 console.log("index: ", index + "  coords: ",curLoc.coords());
 				} else {
-					console.log("Error getting Lat and Lng of " + address);
-					toastr.error('Error getting Lat and Lng of ' + address);
+					console.log("Google Geocoding api Error getting Lat and Lng of " + unWrap(address));
+					toastr.error('Google Geocoding api Error getting Lat and Lng of ' + unWrap(address));
 				}
 
 			}).fail(function() {
@@ -735,20 +788,25 @@
 			});
 
 			// 'promise' me it will work ;)
-			xhr.then(function () {
+			xhr.done(function () {
 				mapRelated.displayMarker(curLoc);
 				fourSquare.getInfo(curLoc);
 			});
 		},
 		/**
-		 *
+		 *  Google only allows certain number of queries at a time, so will fail past X entries (with OVER_QUERY_LIMIT)
 		 *
 		 *
 		 */
 		retrieveCoord : function (arrLocations) {
 			arrLocations.forEach(function(locObj, index, locations) {
 				// include locations array in call...must be a better way....
-				mapRelated.getLatLng(locObj.address, index, arrLocations); // can't use 'locations'
+				if ( typeof locObj.coords() !== 'object' ){
+					mapRelated.getLatLng(locObj.address, index, arrLocations); // can't use 'locations'
+				} else {
+					mapRelated.displayMarker(locObj);
+					 fourSquare.getInfo(locObj);
+				}
 			});
 		},
 
@@ -831,14 +889,16 @@
 			return marker
 		},
 
-		clearMakers : function  (markersArray) {
-			markersArray.forEach(function(locObj, index, locations) {
-    			// if locations a marker on map
-    			if ( locObj.marker){
-    				locObj.marker.setMap(null);
-    			}
-    		});
-		},
+		// clearMakers : function  (markersArray) {
+		// 	markersArray.forEach(function(locObj, index, locations) {
+  //   			// if locations a marker on map
+  //   			if ( locObj.marker){
+  //   				locObj.marker.setMap(null);
+  //   			}
+  //   		});
+		// },
+
+
 		/**
 		 * add markers to map and bound them to all fit in view
 		 *
@@ -857,32 +917,34 @@
 		createContent: function(loc) {
 			var name = unWrap(loc.name),
 				area = unWrap(loc.area),
+				address = unWrap(loc.address),
 				description = unWrap(loc.description),
 				fsUrl = unWrap(loc.fsUrl),
 				fsCheckins = unWrap(loc.fsCheckins),
-				fsRatings = unWrap(loc.fsRatings),
+				fsRating = unWrap(loc.fsRating),
 				fsLikes = unWrap(loc.fsLikes),
 				fsPhotos = unWrap(loc.fsPhotos),
 				output='';
 
 			output += '<div class=\'clearfix info-window\'>';
-			output += name 			? '<h2>' + name + '<\/h2>' : '';
-			output += area 			? '<h5>' + area + '<\/h5>' : '';
-			output += description 	? '<p>' + description + '<\/p>' : '';
-			output += fsCheckins 	? '<h4>Check Ins: ' + fsCheckins + '<\/h4>' : '';
-			output += fsRatings 	? '<h4>Rating: ' + fsRatings + '<\/h4>' : '';
-			output += fsLikes 	? '<h4>Likes: ' + fsLikes + '<\/h4>' : '';
-			output += fsUrl 		? '<a href="' + fsUrl + '">' + fsUrl + '<\/p></a>' : '';
+			output += name 			? '<h2>' : '';
+			output += fsRating      ? '<span class="label label-default">' + fsRating + '</span> ' : '';
+			output += name          ? name + '</h2>' : '';
+			output += address 			? '<h5>' + address + '</h5>' : '';
+			output += area 			? '<h5>' + area + '</h5>' : '';
+			output += description 	? '<p>' + description + '</p>' : '';
+			output += fsCheckins 	? '<h3 class="label label-info mr10">' + fsCheckins + ' Check-ins</h3>' : '';
+			output += fsLikes 	    ? '<h3 class="label label-info">' + fsLikes + ' Likes</h3>' : '';
+			output += fsUrl 		? '<p><a href="' + fsUrl + '">' + fsUrl + '</a></p>' : '';
 			if ( fsPhotos.length > 0){
 				output += mapRelated.getPhotos(fsPhotos);
 			}
-			// output += fsPhotos 		? this.getPhotos(fsPhotos) : '';
 			output += '<\/div>';
 			return output;
     	},
     	getPhotos : function (photos) {
 
-    		var photoStr = '<p>click photo(s) for  gallery</p><div class="brewery-photos">';
+    		var photoStr = '<p>slide or click photo(s) for  gallery</p><div class="brewery-photos">';
 
     		photos.forEach( function (photo, index, photos) {
     			photoStr +=  '<a href=" '+ photo.prefix + photo.large + photo.suffix + ' "><img src=" ' + photo.prefix + photo.small + photo.suffix + '"></a>';
@@ -937,8 +999,8 @@
 					query = '&query=' + unWrap(loc.name),
 					fsUrl = this.url + this.search + this.client_id + this.client_secret + ll + query;
 
-				// only make ajax call if we need id, name, or url
-				if ( !loc.fsId() || !loc.fsUrl() || !loc.fsName() ){
+				// only make ajax call if we need id, or name
+				if ( !loc.fsId()  || !loc.fsName() ){
 					var xhr = $.getJSON(fsUrl, function(data) {
 						// console.log("data: %o", data);
 
@@ -960,7 +1022,6 @@
 					
 					}).fail(function() {
 						console.log("ERROR, can't communicate properly with FourSquare API");
-
 						toastr.error('Can\'t communicate properly with FourSquare API', 'FourSquare', {timeOut: 0});
 					});
 
@@ -969,11 +1030,9 @@
 					fourSquare.getDetails(loc);
 				});
 				}
-			} else {
-				// toastr.error('Don\'t have valid Lat/Lng to get FourSquare Data', unWrap(loc.name), {timeOut: 0,"preventDuplicates": false});
-			}
+			} 
 		},
-
+ 
 		getAllInfo : function () {
 			vm.breweryLocations().forEach(function(locObj, index, locations) {
 	 			fourSquare.getInfo(locObj);
@@ -998,25 +1057,31 @@
 						var fsLikes = data.response.venue.likes.count,
 							fsRating = data.response.venue.rating,
 							fsCheckins = data.response.venue.stats.checkinsCount,
+							fsDescription = data.response.venue.description,
 							fsPhotos;
 
 							// always update stats/pics below
 							loc.fsCheckins(fsCheckins)
 							loc.fsRating(fsRating);
 							loc.fsLikes(fsLikes);
+							// only update if description is empty
+							if ( loc.description() === undefined){ loc.description(fsDescription)}
+
 
 							// needed to zero out array (in case it already had photos), else would keep pushing photos to array, increasing size.
 							loc.fsPhotos().length = 0;
-							data.response.venue.photos.groups[0].items.forEach(function (photo) {
-								loc.fsPhotos.push({
-												"prefix" : photo.prefix,
-												"suffix" : photo.suffix,
-												"small"  : "200x200",
-												"med"    : "700x700",
-												"large"  : "1200x1200"
-										});
-								console.log("pushed to photos array: %o", photo);
-							});
+							if (data.response.venue.photos.count > 0){
+								data.response.venue.photos.groups[0].items.forEach(function (photo) {
+									loc.fsPhotos.push({
+													"prefix" : photo.prefix,
+													"suffix" : photo.suffix,
+													"small"  : "200x200",
+													"med"    : "700x700",
+													"large"  : "1200x1200"
+											});
+									console.log("pushed to photos array: %o", photo);
+								});	
+							}
 						
 						console.log("update location DETAILS: %o", loc);
 					} else {
@@ -1063,45 +1128,6 @@
 		init : function  () {
 			$(document).ready(function() {
 
-				// NEW BREWERY FORM: html element exists so init on dom ready
-				// $('.new-brewery-form').magnificPopup({
-				// 	type: 'inline',
-				// 	preloader: false,
-				// 	focus: '#name',
-			 //        modal: true,
-				// 	// When elemened is focused, some mobile browsers in some cases zoom in
-				// 	// It looks not nice, so we disable it: (per plugin Author!)
-				// 	callbacks: {
-				// 		beforeOpen: function() {
-				// 		 	if($(window).width() < 700) {
-				// 				this.st.focus = false;
-				// 			} else {
-				// 				this.st.focus = '#name';
-				// 		  	}
-				// 		}
-				// 	}
-				// });
-
-				$('.brewery-form').each(function() { // the containers for all your galleries
-				    $(this).magnificPopup({
-				        type: 'inline',
-    					preloader: false,
-    					focus: '#name',
-    			        modal: true,
-    					// When elemened is focused, some mobile browsers in some cases zoom in
-    					// It looks not nice, so we disable it: (per plugin Author!)
-    					callbacks: {
-    						beforeOpen: function() {
-    						 	if($(window).width() < 700) {
-    								this.st.focus = false;
-    							} else {
-    								this.st.focus = '#name';
-    						  	}
-    						}
-    					}
-				    });
-				});
-
 				$(document).on('click', '.close-modal', function (e) {
 					e.preventDefault();
 				    $.magnificPopup.close();
@@ -1114,6 +1140,30 @@
 				    $.magnificPopup.close();
 			    });
 
+			    // had trouble attaching to elements with dynamic ids generated with knockout
+			    // must be better way but for now 
+			    $(document).on('mouseenter', '.widget', function (e) {
+					plugIns.editBrewery();
+			    });
+			   
+			    // options for the notification plugin, not sure where to best place this since it is on global scope
+			    toastr.options = {
+			    	"closeButton": true,
+			    	"debug": false,
+			    	"newestOnTop": true,
+			    	"progressBar": false,
+			    	"positionClass": "toast-top-right",
+			    	"preventDuplicates": false,
+			    	"onclick": null,
+			    	"showDuration": "300",
+			    	"hideDuration": "1000",
+			    	"timeOut": "5000",
+			    	"extendedTimeOut": "1000",
+			    	"showEasing": "swing",
+			    	"hideEasing": "linear",
+			    	"showMethod": "fadeIn",
+			    	"hideMethod": "fadeOut"
+			    }
 			});
 		},
 
@@ -1135,7 +1185,7 @@
 		},
 
 		editBrewery : function () {
-			$('.edit-brewery-form').magnificPopup({
+			$('.brewery-form').magnificPopup({
 				type: 'inline',
 				preloader: false,
 				focus: '#name',
@@ -1154,15 +1204,34 @@
 			});
 		},
 
+		waitMessage : function () {
+			$.magnificPopup.open({
+			 	items: {
+			    	src: '<div class="white-popup-block">You may put any HTML here. This is dummy copy. It is not meant to be read. It has been placed here solely to demonstrate the look and feel of finished, typeset text. Only for show. He who searches for meaning here will be sorely disappointed.</div>',
+			  		type: 'inline'
+			  	}
+			});
+
+			window.setTimeout(function() {
+			      $.magnificPopup.close();
+			    }, 3000);
+		},
+
+		closePopup : function () {
+			$.magnificPopup.close();
+		},
+
 		listToggle : function() {
-			$('.widget').toggleClass('slide-out');
+			$('.widget, .glyphicon-menu-left').toggleClass('slide-out');
 		}
 	}
 
 	var vm = new ViewModel();
 	ko.applyBindings(vm);
+
 	model.init();
 	plugIns.init();
+
 // *****************************
 	// fourSquare.init();
 
@@ -1171,19 +1240,9 @@
 	app.mapRelated = mapRelated;
 	app.fourSquare = fourSquare;
 	app.infowindow = infowindow;
+	app.plugIns = plugIns;
 	app.vm = vm;
 // *******************************
 	
 
 })( window.app || (window.app = {}), window);
-
- /* Features:
-	click on a marker animates, will stop when click on map, another icon, or self again.
-
-	show all icons within map bounds, 
-
-
-
-
-*/
-
