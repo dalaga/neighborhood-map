@@ -26,7 +26,7 @@ module.exports = function(grunt) {
                 options: {
                     jshintrc: '.jshintrc',
                 },
-                    src: 'app/views/js/main.js'
+                    src: 'app/js/app.js'
             }
         },
 
@@ -41,13 +41,16 @@ module.exports = function(grunt) {
         concat: { 
             generated: { 
                 files: [{
-                    src:['app/css/main.css', 'app/css/styles.css'],
+                    src:['app/css/from-bootstrap.css', 'app/bower_components/toastr/toastr.css','app/css/magnific-popup.css','app/css/main.css'],
                     dest: '.tmp/css/app.css'
                 },
 
                 {
                     src: ['app/bower_components/jquery/dist/jquery.min.js',
                           'app/bower_components/knockout/dist/knockout.js',
+                          'app/bower_components/firebase/firebase.js',
+                          'app/bower_components/toastr/toastr.js',
+                          'app/js/magnific-popup.js',
                           'app/js/app.js'
                           ],
                     dest: '.tmp/js/all.js'
@@ -75,10 +78,6 @@ module.exports = function(grunt) {
                 files:[{
                         src: [ '.tmp/css/app.css' ],
                         dest: '<%= dist %>/css/app.css'
-                    },
-                    {
-                        src: [ 'app/css/print.css' ],
-                        dest: '<%= dist %>/css/print.css'
                     }
                 ]
             }
@@ -103,7 +102,7 @@ module.exports = function(grunt) {
                 files: [{
                     expand: true,
                     cwd:'app/',
-                    src: ['.htaccess'],
+                    src: ['.htaccess', 'fonts/**'],
                     dest: '<%= dist %>/'
                 }]
             }
