@@ -13,37 +13,6 @@ module.exports = function(grunt) {
         // for github going to previous folder to use gh-pages 
         dist: '..', 
 
-        // https://www.npmjs.com/package/grunt-responsive-images
-        responsive_images: {
-            dev: {
-                options: {
-                /* by default uses GraphicMagick, but if you want to use ImageMagick uncomment line below */
-                // engine: 'im',
-                    quality: 70,
-                    createNoScaledImage: true,
-                    upscale: false,
-                    sizes: [{
-                        // name: 'small',
-                        width:360
-                    },{
-                        // name: 'medium',
-                        width: 720
-                    },{
-                        // name: 'large',
-                        width: 1440
-                    }]
-                },
-
-                files: [{
-                    expand: true,
-                    src: ['*.{gif,jpg,png}'],
-                    // placed it outside app since these will be processed and are not part of your app/website
-                    cwd: 'images_src/',
-                    dest: 'app/img'
-                }]
-            }
-        },
-
         /* https://www.npmjs.com/package/grunt-contrib-jshint */
         /* http://jshint.com/docs/options/ */
         jshint: {
@@ -185,10 +154,6 @@ module.exports = function(grunt) {
                     livereload: true
                 }
             },
-            responsive_images: {
-                files: ['images_src/*.{gif,jpg,png}'],
-                tasks: ['responsive-img']
-            },
             jshint: {
                 files: ['app/js/app.js', 'Gruntfile.js', '.jshintrc', 'jshintrc-grunt'],
                 tasks: ['jshint']
@@ -227,8 +192,6 @@ module.exports = function(grunt) {
     // default task   > grunt
     grunt.registerTask('default', [ 'connect:app', 'watch' ]);
     
-    // create different sized images    > grunt responsive-img, dont really need since can just do: 'grunt responsive_images'
-    grunt.registerTask('responsive-img', ['responsive_images']);
 
     // test concat, uglify, cssmin
     grunt.registerTask('min', [ 'clean', 'concat', 'cssmin', 'uglify']);
