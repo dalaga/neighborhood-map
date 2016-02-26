@@ -121,13 +121,13 @@
 .edit-icon, .remove-icon {
     display: none;
 }
-.brewery-list li:hover .edit-icon {
+.brewery-list .highlight .edit-icon {
     position: absolute;
     bottom: 5px;
     right: 40px;
     display:block;
 }
-.brewery-list li:hover .remove-icon {
+.brewery-list .highlight .remove-icon {
     position: absolute;
     bottom: 5px;
     right: 10px;
