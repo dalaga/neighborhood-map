@@ -8,10 +8,10 @@
   left:0;
   top: 65px;
   font-size: 25px;
-  -moz-transition: -moz-transform .8s;
-    -o-transition: -o-transform .8s;
-    -webkit-transition: -webkit-transform .8s;
-    transition: transform .8s;
+  -webkit-transition: -webkit-transform .8s;
+  transition: -webkit-transform .8s;
+  transition: transform .8s;
+  transition: transform .8s, -webkit-transform .8s;
 }
 .glyphicon-menu-left.slide-out {
     -moz-transform: rotate(180deg);
@@ -20,27 +20,29 @@
     -ms-transform-origin: center;
     -webkit-transform: rotate(180deg);
     -webkit-transform-origin: center;
-    transform: rotate(180deg);
-    transform-origin: center;
-    -moz-transition: -moz-transform .8s;
-    -o-transition: -o-transform .8s;
+    -webkit-transform: rotate(180deg);
+            transform: rotate(180deg);
+    -webkit-transform-origin: center;
+            transform-origin: center;
     -webkit-transition: -webkit-transform .8s;
+    transition: -webkit-transform .8s;
     transition: transform .8s;
+    transition: transform .8s, -webkit-transform .8s;
 }
 .mr10 {
     margin-right: 10px;
 }
 .highlight { 
-	background-color: #FFE4C4;
+    background-color: #FFE4C4;
 }
 
 .top-bar {             
-	position: fixed;
-	z-index: 999;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 55px;	
+    position: fixed;
+    z-index: 999;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 55px;   
     background-color: #E9DFD3;
 }
 
@@ -49,41 +51,42 @@
 }
 
 .map-wrapper {
-	z-index: 2;
-	position: relative;
-	min-height: 100vh;
+    z-index: 2;
+    position: relative;
+    min-height: 100vh;
 }
 
 .map-container {
-	position: fixed;
-	width: 100%;
-	height: 70vh;
-	z-index: 999;
-	top: 55px;
-	left:0;
-	right:0;
+    position: fixed;
+    width: 100%;
+    height: 70vh;
+    z-index: 999;
+    top: 55px;
+    left:0;
+    right:0;
 }
 
 .map {
-	height: 100%;
-	width: 100%;
+    height: 100%;
+    width: 100%;
 }
 
 .widget {
-	top: calc( 70vh + 55px);
-	position: relative;
-	z-index: 99;
+    top: calc( 70vh + 55px);
+    position: relative;
+    z-index: 99;
   background-color: #FFFBF6;
-	padding: 0 0 40px 0;
-	transition: .5s;
+    padding: 0 0 40px 0;
+    -webkit-transition: .5s;
+    transition: .5s;
 }
 
 .widget-header {
-	bottom: 0;
+    bottom: 0;
     left: 0;
-	position: fixed;
-	z-index: 99;
-	background-color: #E9DFD3;
+    position: fixed;
+    z-index: 99;
+    background-color: #E9DFD3;
     color: white;
     /*text-transform: uppercase;*/
     font-weight: normal;
@@ -107,6 +110,7 @@
     margin: 0;
     padding: 0;
     border-bottom: 1px solid #E9DFD3;
+    -webkit-transition: 1.8s;
     transition: 1.8s;
 }
 
@@ -134,16 +138,16 @@
     display: block;
 }
 .brewery-photos {
-	/*height:200px;*/
-	overflow: auto;
-	white-space: nowrap;
-	margin:0 0 0 -5px;
-	padding:0;
+    /*height:200px;*/
+    overflow: auto;
+    white-space: nowrap;
+    margin:0 0 0 -5px;
+    padding:0;
 }
 
 .brewery-photos a{
-	display: inline-block;
-	margin-left:5px;
+    display: inline-block;
+    margin-left:5px;
 }
 
 
@@ -153,18 +157,18 @@
     }
     
     .map-container {
-    	padding:0;
-    	height: calc( 100vh - 55px);
-    	z-index: 1;
+        padding:0;
+        height: calc( 100vh - 55px);
+        z-index: 1;
     }
 
     .widget {
-    	left:0;
-    	top:65px;
-    	width:200px;
-    	position: fixed;
-    	overflow-y:scroll;
-    	height: calc( 100vh - 65px);
+        left:0;
+        top:65px;
+        width:200px;
+        position: fixed;
+        overflow-y:scroll;
+        height: calc( 100vh - 65px);
 
     }
 
@@ -172,26 +176,22 @@
         bottom: 0;
         left: 0;
         width:200px;
+        -webkit-transition: .8s;
         transition: .8s;
     }
 
     .search {
-    	/*width:35%;*/
-    	/*max-width: 350px;*/
-    	transition: .8s;
+        -webkit-transition: .8s;
+        transition: .8s;
     }
 
     .widget.slide-out {
-      transform: translate3d( -175px ,0,0); 
+      -webkit-transform: translate3d( -175px ,0,0);
+              transform: translate3d( -175px ,0,0); 
     }
-    /*.widget.slide-out .widget-header {
-      opacity: 0;
-      left: 0;
-      bottom:0;
-    }*/
 
     .slide-out .search {
-    	top: 0px;
-    	text-transform: .8s;
+        top: 0px;
+        text-transform: .8s;
     }
 }
