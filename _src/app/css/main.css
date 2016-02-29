@@ -6,7 +6,7 @@
   color: #fff;
   position:absolute;
   left:0;
-  top: 65px;
+  top: 90px;
   font-size: 25px;
   -webkit-transition: -webkit-transform .8s;
   transition: -webkit-transform .8s;
@@ -36,17 +36,18 @@
     background-color: #FFE4C4;
 }
 
-.top-bar {             
+.top-bar {
+    min-width: 310px;             
     position: fixed;
     z-index: 999;
     top: 0;
     left: 0;
     right: 0;
-    height: 55px;   
+    height: 80px;   
     background-color: #E9DFD3;
 }
 
-.top-bar form {
+.top-bar .form {
     margin: 10px;
 }
 
@@ -72,7 +73,7 @@
 }
 
 .widget {
-    top: calc( 50vh + 55px);
+    top: calc( 50vh + 58px);
     position: relative;
     z-index: 99;
   background-color: #FFFBF6;
@@ -150,6 +151,15 @@
     margin-left:5px;
 }
 
+/*autocomplete*/
+.autocomplete-suggestions { border: 1px solid #999; background: rgba(256,256,256, .8); cursor: default; overflow: auto; -webkit-box-shadow: 1px 4px 3px rgba(50, 50, 50, 0.64); -moz-box-shadow: 1px 4px 3px rgba(50, 50, 50, 0.64); box-shadow: 1px 4px 3px rgba(50, 50, 50, 0.64); }
+.autocomplete-suggestion { padding: 2px 5px; white-space: nowrap; overflow: hidden; }
+.autocomplete-no-suggestion { padding: 2px 5px;}
+.autocomplete-selected { background: #F0F0F0; }
+.autocomplete-suggestions strong { font-weight: bold; color: #66afe9; }
+.autocomplete-group { padding: 2px 5px; }
+.autocomplete-group strong { font-weight: bold; font-size: 16px; color: #000; display: block; border-bottom: 1px solid #000; }
+
 
 @media (min-width: 720px){
     .glyphicon-menu-left {
@@ -164,11 +174,11 @@
 
     .widget {
         left:0;
-        top:65px;
+        top:90px;
         width:200px;
         position: fixed;
         overflow-y:scroll;
-        height: calc( 100vh - 65px);
+        height: calc( 100vh - 90px);
 
     }
 
