@@ -4,21 +4,32 @@
     <meta name="viewport" content="width=device-width">
     <title>San Diego Breweries</title>
     <!-- build:css css/app.css --> 
-    <link rel="stylesheet" type="text/css" href="css/from-bootstrap.css"/>
-    <link rel="stylesheet" type="text/css" href="css/main.css"/>
-    <link rel="stylesheet" type="text/css" href="bower_components/toastr/toastr.css"/>
-    <link rel="stylesheet" type="text/css" href="css/magnific-popup.css"/>
+    <link rel="stylesheet" href="css/from-bootstrap.css"/>
+    <link rel="stylesheet" href="css/main.css"/>
+    <link rel="stylesheet" href="bower_components/toastr/toastr.css"/>
+    <link rel="stylesheet" href="css/magnific-popup.css"/>
     <!-- /build -->
 </head>
 <body>        
     
     <div class="top-bar">
         
-        <form >
-            <div class="form-group">
-                <input id="search-input" class="search form-control" type="text" placeholder="Search name, address, or area " data-bind="textInput: searchVal">
+        <div class="form" >
+            <div  class="">
+                <span class="mr10"> Search by: </span>
+                
+                <span id="check-options" class="" data-bind=" foreach: searchOptions">
+                    <label class="check-box-label mr10" >
+                        <input class="check-box" type="checkbox" data-bind="checked: $root.searchOptionsSelected , value: $data">
+                        <span data-bind="text: $data"></span>
+                    </label>
+                </span>
             </div>
-        </form>
+            
+            <div class="">
+                <input id="search-input" class="search form-control" type="text" placeholder="Search name, address, or area " data-bind="textInput: searchVal, event: { focus: setAutocomplete}, enable: searchOptionsSelected().length > 0">
+            </div>
+        </div>
 
         <span class="glyphicon glyphicon-menu-left" aria-hidden="true" data-bind="click: toggle"></span>
 
@@ -42,7 +53,7 @@
                 <h2>Ente Info for New Brewery</h2>
                 <div class="form-group">
                     <label>* Name: </label>
-                    <input class="form-control" id="name" type="text" data-bind="value: newName">
+                    <input class="form-control" type="text" data-bind="value: newName">
                 </div>
                 <div class="form-group">
                     <label>* Address: </label>
@@ -79,7 +90,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Name: </label>
-                                <input class="form-control" id="name" type="text" data-bind="textInput: name" required>
+                                <input class="form-control" type="text" data-bind="textInput: name" required>
                             </div>
                             <div class="form-group">
                                 <label>Address: </label>
@@ -110,6 +121,7 @@
     <script src='bower_components/firebase/firebase.js'></script>
     <script src='bower_components/toastr/toastr.js'></script>
     <script src='js/magnific-popup.js'></script>
+    <script src='js/jquery.autocomplete.min.js'></script>
     <script src="js/app.js"></script>
     <!-- /build -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDoKlazgkDGJpCm40Z5TnV3xikLoj4UIpM&callback=app.mapRelated.init" onerror="app.mapRelated.error()"></script>
