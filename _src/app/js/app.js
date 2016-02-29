@@ -106,6 +106,9 @@
 		this.fsRating = ko.observable(data.fsRating) || '';
 		this.fsPhotos = ko.observableArray(data.photos) || '';
 
+		// flickr related
+		this.flPhotos = ko.observableArray(data.flPhotos) || '';
+
 		// values only apply to instance, so do not 'subscribe' changes back to firebase
 			// Keeps track of when the item is clicked.
 		this.clicked = ko.observable(false);
@@ -495,6 +498,8 @@
 		var self = this;
 
 		self.searchVal = ko.observable('');
+		self.searchOptions = ["name", "area", "address"];
+		self.searchOptionsSelected = ko.observableArray(self.searchOptions);
 		self.breweryLocations = ko.observableArray();
 		//new brewery form
 		self.newName = ko.observable();
@@ -564,6 +569,7 @@
        	 */
        	self.checkSearch = function(index) {
        		var brewery = self.breweryLocations()[index];
+     		var selected = unWrap(self.searchOptionsSelected);
 			var searchString = self.searchVal().toLowerCase();
 			var breweryName = brewery.name().toLowerCase();
 			var breweryAddress = brewery.address().toLowerCase();
@@ -571,8 +577,9 @@
 			var marker = unWrap(self.breweryLocations()[index].marker);
 
 			mapRelated.closeInfowindow();
-			// checking for name, area, and address
-			if(breweryName.indexOf(searchString) > -1 || breweryAddress.indexOf(searchString) > -1 || breweryArea.indexOf(searchString) > -1 || searchString.length === 0) {
+			// checking for name, area, and address AND only check agains field if checked off
+			if( (breweryName.indexOf(searchString) > -1 && selected.indexOf('name') > -1 ) || (breweryAddress.indexOf(searchString) > -1  && selected.indexOf('address') > -1) || (breweryArea.indexOf(searchString) > -1  && selected.indexOf('area') > -1) || searchString.length === 0) {
+				
 				brewery.display(true);
 				
 				// attempt to show marker only if brewery object has one
@@ -588,6 +595,13 @@
 			
 			// after setting the value return value so view 'visible' binding knows whether its true or false
 			return brewery.display();
+		};
+
+		self.setAutocomplete = function () {
+			vm.searchVal('');
+			plugIns.autocomplete();
+
+			return true;
 		};
 
 		/**
@@ -617,6 +631,32 @@
 		self.closePopup = function  () {
 			plugIns.closePopup();
 		};
+
+		// get a list of areas
+		self.justAreas = ko.dependentObservable(function() {
+		    var areas = ko.utils.arrayMap(self.breweryLocations(), function(brewery) {
+		        return brewery.area();
+		    });
+
+		    //return unique values only
+		    return ko.utils.arrayGetDistinctValues(areas.sort());
+		});
+
+		// get a list of areas
+		self.justNames = ko.dependentObservable(function() {
+		    var names = ko.utils.arrayMap(self.breweryLocations(), function(brewery) {
+		        return brewery.name();
+		    });
+		    return names.sort();
+		});
+
+		// get a list of areas
+		self.justAddress = ko.dependentObservable(function() {
+		    var addresses = ko.utils.arrayMap(self.breweryLocations(), function(brewery) {
+		        return brewery.address();
+		    });
+		    return addresses.sort();
+		});
 	};
 
 
@@ -624,6 +664,7 @@
 //
 //			                    mapRelated Object
 //
+//  TODO: geocoder NOT very accurate with bogus address lookup, find way to make it return only valid addresses, if possible.
 // *--------------------------------------------------------------------*
 
 	var mapRelated = {
@@ -696,7 +737,7 @@
 		 *
 		 */
 		getLatLng: function(address, index, array) {
-			var url = this.geocodeUrl + "region=US&address=" + unWrap(address)  + "&key="+ this.geocodeKey,
+			var url = this.geocodeUrl + '&address=' + unWrap(address)  + "&key="+ this.geocodeKey,
 				curArray = unWrap(array), // get value regardless if observeable or not
 				curLoc = curArray[index],
 				xhr;
@@ -839,6 +880,7 @@
 				fsRating = unWrap(loc.fsRating),
 				fsLikes = unWrap(loc.fsLikes),
 				fsPhotos = unWrap(loc.fsPhotos),
+				flPhotos = unWrap(loc.flPhotos),
 				output='';
 
 			output += '<div class=\'clearfix info-window\'>';
@@ -850,9 +892,15 @@
 			output += description 	? '<p>' + description + '</p>' : '';
 			output += fsCheckins 	? '<h3 class="label label-info mr10">' + fsCheckins + ' Check-ins</h3>' : '';
 			output += fsLikes 	    ? '<h3 class="label label-info">' + fsLikes + ' Likes</h3>' : '';
-			output += fsUrl 		? '<p><a href="' + fsUrl + '">' + fsUrl + '</a></p>' : '';
-			if ( fsPhotos.length > 0){
+			output += fsUrl 		? '<p><a href="' + fsUrl + '" target="_blank">' + fsUrl + '</a></p>' : '';
+			//check for both FourSquare and Flickr photos.
+			if ( fsPhotos.length > 0 || flPhotos.length > 0){
+				output += '<p>slide or click photo(s) for  gallery</p><div class="brewery-photos">';
+
 				output += mapRelated.getPhotos(fsPhotos);
+				output += mapRelated.getFlPhotos(flPhotos);
+
+				output += '</div>';
 			}
 			output += '<\/div>';
 			return output;
@@ -865,19 +913,37 @@
     	 *
     	 */
     	getPhotos : function (photos) {
-    		var photoStr = '<p>slide or click photo(s) for  gallery</p><div class="brewery-photos">';
+    		var photoStr = ''; 
 
     		photos.forEach( function (photo) {
-    			photoStr +=  '<a class="img-thumbnail" href=" '+ photo.prefix + photo.large + photo.suffix + ' "><img src=" ' + photo.prefix + photo.small + photo.suffix + '"></a>';
+    			photoStr +=  '<a class="img-thumbnail" href=" '+ photo.prefix + photo.med + photo.suffix + ' "><img src=" ' + photo.prefix + photo.small + photo.suffix + '"></a>';
     		});
-
-    		photoStr += '</div>';
 
     		return photoStr;
     	},
 
     	/**
-    	 * attach content to each marker, only using one infowindow.
+    	 * loop through each photo info to generate img element
+    	 *
+    	 * @parameter {array} photos - Flickr info for each photo
+    	 *
+    	 */
+    	getFlPhotos : function (photos) {
+
+    		var photoStr = '';
+
+    		photos.forEach( function (photo) {
+    			var link = 'https://farm' + photo.farm + '.staticflickr.com/' + photo.server + '/' + photo.id + '_' + photo.secret + '_' + photo.med + '.jpg',
+    				thumb = 'https://farm' + photo.farm + '.staticflickr.com/' + photo.server + '/' + photo.id + '_' + photo.secret + '_' + photo.small + '.jpg';
+
+    			photoStr +=  '<a class="img-thumbnail" href="' + link + '" ><img src=" ' + thumb + '"></a>';
+    		});
+
+    		return photoStr;
+    	},
+
+    	/**
+    	 * attach content to each marker, only using one infowndow.
     	 *
     	 * @parameter {object} maker - google map marker object for brewery
     	 *
@@ -990,16 +1056,84 @@
 									"prefix" : photo.prefix,
 									"suffix" : photo.suffix,
 									"small"  : "200x200",
-									"med"    : "700x700",
-									"large"  : "1200x1200"
+									"med"    : "800x800",
+									"large"  : "1600x1600"
 								});
 							});	
 						}						
 					}
 				}).fail(function() {
 					toastr.error('Can\'t communicate properly with FourSquare API', 'FourSquare', {timeOut: 0});
-				});
+				}).then(function () {
+						 flickr.getPics(locObj);
+					});
 			}
+		}
+	};
+
+// *--------------------------------------------------------------------*
+//
+//			                   Flickr Object
+//
+// *--------------------------------------------------------------------*
+	var flickr = {
+		url: 'https://api.flickr.com/services/rest/?method=flickr.photos.search',
+		api_key: '&api_key=cafcfda94480e3a47dcf8442b9dc954c',
+		// format: '&format=json&jsoncallback=?',
+		format: '&format=json&nojsoncallback=1',
+		per_page : '&per_page=10',
+		radius : '&radius=1',
+
+		/**
+		 * Ajax call to Flickr to get pics
+		 *
+		 * @parameter {object} locObj - brewery object
+		 *
+		 */			
+		getPics : function (locObj) {
+			var coords = unWrap(locObj.coords);
+
+			// TODO: is there a better way to check if we have lat/lng??
+			if ( typeof coords === 'object' && !($.isEmptyObject(coords)) ) {
+				var lat = '&lat=' + unWrap(coords.lat),
+					lon = '&lon=' + unWrap(coords.lng),
+					text = '&text=' + unWrap(locObj.name).replace(/\ /g, '+'),
+					fUrl = this.url  + this.api_key  + this.format + this.per_page + this.radius + lat + lon + text;
+
+					$.getJSON(fUrl, function(data) {
+					
+						locObj.flPhotos().length = 0;
+						if (data.photos.total > 0){
+							data.photos.photo.forEach(function (photo) {
+								locObj.flPhotos.push({
+									"farm"   : photo.farm,
+									"id"     : photo.id,
+									"secret" : photo.secret,
+									"server" : photo.server,
+   									"small"  : "m",
+									"med"    : "c",
+									"large"  : "h"
+								});
+							});	
+						}			
+
+					}).fail(function() {
+						toastr.error('Can\'t communicate properly with Flickr API', 'Flckr', {timeOut: 0});
+					});
+			} 
+		},
+
+		/**
+		 * Loop through breweries to get flickr photos
+		 *
+		 * @parameter {array} arrLocations - breweries objects array
+		 *
+		 */
+		getAllPics : function (arrLocations) {
+			arrLocations.forEach(function(locObj) {
+				// only add markers for those that have lat/lng coords
+				flickr.getPics(locObj);
+			});
 		}
 	};
 	
@@ -1123,6 +1257,35 @@
 		// hide/show list of breweries
 		listToggle : function() {
 			$('.widget, .glyphicon-menu-left').toggleClass('slide-out');
+		},
+
+		// set autocomplete
+		autocomplete : function () {
+			var lookups = [],
+				name = vm.justNames(),
+				area = vm.justAreas(),
+				address = vm.justAddress();
+
+			ko.utils.arrayForEach(vm.searchOptionsSelected(), function(item) {
+			        
+			        if ( item === 'name'){
+			        	Array.prototype.push.apply(lookups, name);
+			        }
+			        if ( item === 'area'){
+			        	Array.prototype.push.apply(lookups, area);
+			        }
+			        if ( item === 'address'){
+			        	Array.prototype.push.apply(lookups, address);
+			        }
+
+		   });
+
+			$('#search-input').autocomplete({
+			    lookup: lookups,
+			    onSelect: function (suggestion) {
+			     	vm.searchVal(suggestion.value);
+			    }
+			});
 		}
 	};
 
@@ -1131,14 +1294,15 @@ var vm = new ViewModel();
 	model.init();
 	plugIns.init();
 // *****************************
-	// fo testing in console, expose through app namespace
-	// app.model = model;
-	// ALWAYS expose mapRelated since it will be called once google maps is loaded
-	app.mapRelated = mapRelated;
+	// fo testing in console, expose through app namespace // app.model = model;
 	// app.fourSquare = fourSquare;
+	// app.flickr = flickr;
 	// app.infowindow = infowindow;
 	// app.plugIns = plugIns;
 	// app.vm = vm;
+	// ALWAYS expose mapRelated since it will be called once google maps is loaded
+	app.mapRelated = mapRelated;
+	
 // *******************************
 
 })( window.app || (window.app = {}), window);
