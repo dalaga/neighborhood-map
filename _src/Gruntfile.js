@@ -51,6 +51,7 @@ module.exports = function(grunt) {
                           'app/bower_components/firebase/firebase.js',
                           'app/bower_components/toastr/toastr.js',
                           'app/js/magnific-popup.js',
+                          'app/js/jquery.autocomplete.min.js',
                           'app/js/app.js'
                           ],
                     dest: '.tmp/js/all.js'
