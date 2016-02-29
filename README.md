@@ -1,6 +1,6 @@
 # Neighborhood Map
 
-The object of this project was to develop a single-page application featuring a map of a neighborhood. This map shows the locations of a handful of micro breweries throughout San Diego County.  The Google maps geocoder API was used to reverse lookup address to get geographic coordinates and the FourSquare API was used to get additional information such as rating, likes, and images for each of the breweries.  In order to keep data persistent and real-time a Firebase database was used to store data.
+The object of this project was to develop a single-page application featuring a map of a neighborhood. This map shows the locations of a handful of micro breweries throughout San Diego County.  The Google maps geocoder API was used to reverse lookup address to get geographic coordinates and the FourSquare API was used to get additional information such as rating, likes, and images for each of the breweries. In addition, the Flickr API was use to get additional photos for the gallery.  In order to keep data persistent and real-time a Firebase database was used to store data.
 
 
 In addition, [Grunt](http://gruntjs.com/) was used to automatically perform some optimization, such as concanication/minification of CSS and JS files where needed.
@@ -10,7 +10,9 @@ In addition, [Grunt](http://gruntjs.com/) was used to automatically perform some
 
 * A list of current breweries are on the left side.  List can slide out of view if need to view content on map that may be hidden.
 
-* A search field at top can be used to filter breweries by name, area, or any part of the address.
+* A search field at top can be used to filter breweries by name, area, or any part of the address, autocomplete will be based ONLY on criteria selected.
+
+* note: if no search criteria is selected ( non checked), the search field will be disabled.
 
 * Can view a picture gallery of brewery if picture in infoWindow is clicked.
 
@@ -26,6 +28,7 @@ In addition, [Grunt](http://gruntjs.com/) was used to automatically perform some
 * Google Maps API
 * Google Mapd Geocoder API
 * FourSquare API
+* Flickr API
 
 
 
